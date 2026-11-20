@@ -45,10 +45,12 @@
   #stage { position: absolute; inset: 0;
     background: radial-gradient(ellipse at 50% 30%, #334155 0%, #0f172a 70%); overflow: hidden; }
   #stage canvas { display: block; }
-  #overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  #overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; }
+  #ctrl, #results, #raceRes, #qrBox, #raceBanner, #judgeBanner, #hostErr { z-index: 4; }
   .tag { position: absolute; transform: translate(-50%, 0); background: rgba(15,23,42,.8); color: #fff;
     padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: calc(clamp(14px, 1.4vw, 24px) * var(--s, 1)); white-space: nowrap; }
   .tag .score { color: #facc15; margin-left: 6px; }
+  .tag[data-rank]::after { content: " 🏁" attr(data-rank); color: #4ade80; }
   .bubble { position: absolute; transform: translate(-50%, -100%); background: #fff; color: #0f172a;
     padding: 10px 14px; border-radius: 16px; font-weight: 700; font-size: calc(clamp(14px, 1.5vw, 26px) * var(--s, 1));
     max-width: calc(22vw * var(--s, 1)); z-index: 2; text-align: center; line-height: 1.3; box-shadow: 0 6px 20px rgba(0,0,0,.35);
@@ -98,6 +100,31 @@
   @keyframes bob { 50% { transform: translateY(-8px); } }
   @keyframes jump { 50% { transform: translateY(-30px); } }
 
+  /* 달리기 */
+  #raceBanner { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); font-size: clamp(60px, 12vw, 220px);
+    font-weight: 900; color: #fff; text-shadow: 0 8px 30px rgba(0,0,0,.6); pointer-events: none; white-space: nowrap; }
+  #raceBanner.small { font-size: clamp(22px, 2.6vw, 44px); top: 13%; color: #facc15; }
+  #raceRes { position: absolute; right: 16px; top: 16px; width: min(460px, 38vw); max-height: calc(100% - 100px); overflow: auto;
+    background: rgba(15,23,42,.92); border-radius: 18px; padding: 16px; }
+  #raceRes h2 { margin: 0 0 10px; font-size: clamp(18px, 1.8vw, 30px); }
+  #raceRes ol { list-style: none; margin: 0; padding: 0; }
+  #raceRes li { display: grid; grid-template-columns: 44px 52px 1fr auto; gap: 10px; align-items: center;
+    padding: 8px; border-radius: 12px; background: #1e293b; margin-bottom: 6px; animation: pop .45s ease-out; }
+  #raceRes li.first { background: #854d0e; }
+  #raceRes li img { width: 52px; height: 52px; border-radius: 50%; background: #fff; object-fit: cover; }
+  #raceRes .rk { font-size: 24px; font-weight: 900; text-align: center; }
+  #raceRes .nm { font-weight: 800; font-size: clamp(14px, 1.3vw, 20px); }
+  #raceRes .sc { font-size: clamp(18px, 1.8vw, 28px); font-weight: 900; color: #facc15; font-variant-numeric: tabular-nums; }
+  #ctrl button.run { background: #22c55e; color: #052e16; font-size: 20px; padding: 14px 26px; }
+  #track2d { position: absolute; left: 3%; right: 3%; top: 18%; bottom: 12%; display: flex; flex-direction: column; justify-content: center;
+    background: #9a3412; border-radius: 12px; overflow: hidden; }
+  #track2d .lane { position: relative; flex: 1; border-bottom: 1px solid rgba(255,255,255,.35); min-height: 0; }
+  #track2d .runner { position: absolute; top: 50%; transform: translate(-50%, -50%); height: 90%; max-height: 70px; aspect-ratio: 1;
+    border-radius: 50%; background: #ffe0bd; overflow: hidden; box-shadow: 0 3px 8px rgba(0,0,0,.4); }
+  #track2d .runner img { width: 100%; height: 100%; }
+  #track2d .line { position: absolute; top: 0; bottom: 0; width: 6px; background: #fff; }
+  #track2d .finish { background: repeating-linear-gradient(0deg, #fff 0 10px, #111 10px 20px); width: 12px; }
+
   /* ================= 참가자 ================= */
   #player { max-width: 520px; margin: 0 auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
   #player h1 { margin: 0; font-size: 22px; }
@@ -118,6 +145,18 @@
   #myScore { text-align: center; font-size: 18px; line-height: 1.5; }
   #myScore b { font-size: 40px; color: #facc15; }
   .ok { color: #4ade80; font-size: 14px; min-height: 1.2em; }
+  #raceBox { position: fixed; inset: 0; background: #0f172a; z-index: 10; display: flex; flex-direction: column; padding: 16px; gap: 12px;
+    -webkit-user-select: none; user-select: none; }
+  #raceTitle { font-size: 22px; font-weight: 900; text-align: center; }
+  #raceStatus { font-size: 20px; font-weight: 800; text-align: center; min-height: 1.4em; color: #facc15; }
+  #raceBar { height: 18px; background: #334155; border-radius: 9px; overflow: hidden; }
+  #raceBar div { height: 100%; width: 0; background: linear-gradient(90deg, #22c55e, #facc15); }
+  #raceDist { text-align: center; font-size: 16px; opacity: .85; }
+  #tapBtn { flex: 1; width: 100%; border-radius: 28px; font-size: 56px; background: #334155; color: #94a3b8; touch-action: none; }
+  #tapBtn.live { background: #22c55e; color: #052e16; }
+  #tapBtn.live:active { background: #16a34a; }
+  #raceMine { text-align: center; font-size: 18px; line-height: 1.5; }
+  #raceMine b { font-size: 40px; color: #facc15; }
 </style>
 </head>
 <body>
@@ -137,12 +176,20 @@
     <div class="small" id="pCount"></div>
   </div>
   <div id="judgeBanner" hidden></div>
+  <div id="raceBanner" hidden></div>
+  <div id="track2d" hidden></div>
+  <div id="raceRes" hidden>
+    <h2>🏁 100m 달리기 결과</h2>
+    <ol id="raceList"></ol>
+    <div class="small" id="raceMore"></div>
+  </div>
   <div id="results" hidden>
     <h2>👑 외모 평가 결과</h2>
     <ol id="resList"></ol>
     <div class="small" style="margin-top:8px">※ 그림의 색감·대칭·디테일로 매긴 재미용 점수입니다</div>
   </div>
   <div id="ctrl">
+    <button id="raceBtn" class="run">🏃 100m 달리기</button>
     <button id="judgeBtn" class="go">✨ 외모 평가하기</button>
     <button id="closeResBtn" hidden>결과 닫기</button>
     <button id="resetBtn" class="danger">초기화</button>
@@ -195,6 +242,15 @@
     <div class="card" id="scoreCard" style="margin-top:12px" hidden>
       <div id="myScore"></div>
     </div>
+    <div id="raceBox" hidden>
+      <div id="raceTitle">🏃 100m 달리기</div>
+      <div id="raceStatus"></div>
+      <div id="raceBar"><div></div></div>
+      <div id="raceDist"></div>
+      <button id="tapBtn">준비</button>
+      <div id="raceMine"></div>
+      <button id="raceCloseBtn" class="tbtn" hidden style="align-self:center">닫기</button>
+    </div>
     <button id="leaveBtn" class="tbtn" style="margin:12px auto 0;display:block;background:none;text-decoration:underline">나가기</button>
   </div>
 </div>
@@ -202,6 +258,9 @@
 <script type="module">
   const MAX_PLAYERS = 99;   // 무료 요금제 동시 접속 100개 중 진행자 1개를 뺀 값
   const BUBBLE_MS = 12000;
+  const TAPS_TO_FINISH = 120;   // 이만큼 탭하면 100m 완주
+  const RACE_LIMIT = 40000;     // 출발 후 40초가 지나면 경기 종료
+  const READY_MS = 6000;        // 버튼을 누르고 출발까지 6초 (휴대폰이 알아챌 시간 + 3·2·1)
   const SKIN = "#ffe0bd";
   const $ = (id) => document.getElementById(id);
   const isHost = new URLSearchParams(location.search).has("host");
@@ -413,6 +472,119 @@
       $("msgBtn").disabled = false;
     }
     $("msgBtn").addEventListener("click", sendMsg);
+
+    // ---- 100m 달리기 ----
+    let race = { phase: "off", round: 0, startAt: 0 };
+    let myRound = 0, taps = 0, finishAt = null, sentTaps = -1, sentFin = false, sending = false;
+    const tapTimes = [];
+    let raceResult = null, raceClosed = false;
+
+    async function syncClock() {   // 서버 시각과의 차이를 잼 (왕복이 가장 짧은 값 사용)
+      let best = Infinity;
+      for (let i = 0; i < 3; i++) {
+        try {
+          const t1 = Date.now();
+          await rest("face/clock/" + myId, "PUT", SV_TS);
+          const t2 = Date.now();
+          const v = await rest("face/clock/" + myId);
+          if (typeof v === "number" && t2 - t1 < best) { best = t2 - t1; offset = v - (t1 + t2) / 2; }
+        } catch (e) {}
+      }
+      rest("face/clock/" + myId, "DELETE").catch(() => {});
+    }
+    syncClock();
+
+    async function pollRace() {
+      try {
+        const st = (await rest("face/race/state")) || { phase: "off" };
+        race = { phase: st.phase || "off", round: Number(st.round) || 0, startAt: Number(st.startAt) || 0 };
+        if (race.phase === "ready" && race.round !== myRound) {
+          myRound = race.round; taps = 0; finishAt = null; sentTaps = -1; sentFin = false;
+          raceResult = null; raceClosed = false; tapTimes.length = 0;
+          syncClock();
+        }
+        if (race.phase === "done" && race.round === myRound && !raceResult) {
+          raceResult = await rest(`face/race/res/${myRound}/${myId}`);
+        }
+      } catch (e) {}
+      renderRace();
+    }
+    pollRace();
+    setInterval(pollRace, 1200);
+
+    const raceOn = () => race.phase === "ready" && race.round === myRound;
+    function canTap() {
+      const now = serverNow();
+      return raceOn() && joinedNick && sentFace && finishAt === null && now >= race.startAt && now <= race.startAt + RACE_LIMIT;
+    }
+    $("tapBtn").addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      if (!canTap()) return;
+      const now = Date.now();
+      while (tapTimes.length && now - tapTimes[0] > 1000) tapTimes.shift();
+      if (tapTimes.length >= 16) return;          // 1초에 16번까지만 인정
+      tapTimes.push(now);
+      taps++;
+      if (taps >= TAPS_TO_FINISH) { taps = TAPS_TO_FINISH; finishAt = Math.round(serverNow()); try { navigator.vibrate && navigator.vibrate(200); } catch (er) {} }
+      renderRace();
+    });
+    $("tapBtn").addEventListener("contextmenu", (e) => e.preventDefault());
+    $("raceCloseBtn").addEventListener("click", () => { raceClosed = true; renderRace(); });
+
+    // 0.3초마다 탭 수를 보냄 (바뀐 경우에만)
+    setInterval(async () => {
+      if (sending || !raceOn() || !joinedNick || !sentFace) return;
+      if (taps === sentTaps && (finishAt === null || sentFin)) return;
+      sending = true;
+      const t = taps, f = finishAt;
+      try {
+        await rest(`face/race/taps/${myRound}/${myId}`, "PUT", { t, f });
+        sentTaps = t; if (f !== null) sentFin = true;
+      } catch (e) {}
+      sending = false;
+    }, 300);
+
+    function renderRace() {
+      const box = $("raceBox");
+      const show = joinedNick && ((raceOn()) || (race.phase === "done" && race.round === myRound && myRound && !raceClosed));
+      box.hidden = !show;
+      if (!show) return;
+      const btn = $("tapBtn"), st = $("raceStatus");
+      const pct = Math.min(100, taps / TAPS_TO_FINISH * 100);
+      $("raceBar").firstElementChild.style.width = pct + "%";
+      $("raceDist").textContent = `${pct.toFixed(0)} m / 100 m`;
+      $("raceCloseBtn").hidden = race.phase !== "done";
+      $("raceMine").textContent = "";
+      if (!sentFace) {
+        st.textContent = "얼굴을 먼저 보내야 달리기에 참가할 수 있어요";
+        btn.className = ""; btn.textContent = "참가 불가"; return;
+      }
+      if (race.phase === "done") {
+        btn.className = ""; btn.textContent = "🏁";
+        st.textContent = "경기 종료!";
+        if (raceResult) {
+          const a = document.createElement("div"); a.textContent = `${raceResult.rank}위 / ${raceResult.total}명`;
+          const b = document.createElement("b"); b.textContent = raceResult.time ? raceResult.time + "초" : Math.round(raceResult.dist || 0) + "m";
+          $("raceMine").append(a, b);
+        } else $("raceMine").textContent = "결과를 불러오는 중…";
+        return;
+      }
+      const now = serverNow();
+      if (finishAt !== null) {
+        btn.className = ""; btn.textContent = "🏁 완주!";
+        st.textContent = `완주 기록 ${((finishAt - race.startAt) / 1000).toFixed(2)}초 · 결과는 프로젝터에서`;
+      } else if (now < race.startAt) {
+        const n = Math.ceil((race.startAt - now) / 1000);
+        btn.className = ""; btn.textContent = n <= 3 ? String(n) : "준비";
+        st.textContent = "출발 신호를 기다리세요! 화면을 마구 두드리면 달려요";
+      } else if (now <= race.startAt + RACE_LIMIT) {
+        btn.className = "live"; btn.textContent = "TAP!";
+        st.textContent = "빠르게 두드리세요! 🔥";
+      } else {
+        btn.className = ""; btn.textContent = "시간 종료"; st.textContent = "시간이 끝났어요";
+      }
+    }
+    setInterval(renderRace, 200);
     $("msgInput").addEventListener("keydown", (e) => { if (e.key === "Enter") sendMsg(); });
 
     onChange = () => {
@@ -494,7 +666,8 @@
       for (const pid in tags) {
         const p = stage.screenPos(pid);
         const t = tags[pid];
-        if (!p) continue;
+        if (!p) { t.tag.style.display = "none"; t.bubble.style.opacity = "0"; continue; }
+        t.tag.style.display = "";
         t.tag.style.left = p.foot.x + "px"; t.tag.style.top = p.foot.y + "px";
         t.bubble.style.left = p.head.x + "px"; t.bubble.style.top = p.head.y + "px";
         const m = msgs[pid];
@@ -662,13 +835,144 @@
       await fb.ref("face").remove();
     });
 
+    // ---------- 100m 달리기 ----------
+    let raceState = { phase: "off", round: 0, startAt: 0 };
+    let raceTaps = {}, raceRef = null, runners = [], raceFinalizing = false, raceShownRound = 0;
+    fb.ref("face/race/state").on("value", (snap) => {
+      const d = snap.val() || {};
+      const prevRound = raceState.round;
+      raceState = { phase: ["ready", "done"].includes(d.phase) ? d.phase : "off", round: Number(d.round) || 0, startAt: Number(d.startAt) || 0 };
+      if (raceState.round !== prevRound) {
+        if (raceRef) raceRef.off();
+        raceTaps = {}; raceRef = null; runners = [];
+        if (raceState.round) {
+          raceRef = fb.ref("face/race/taps/" + raceState.round);
+          raceRef.on("value", (x) => { raceTaps = x.val() || {}; });
+        }
+      }
+      $("hostTitle").hidden = $("hostSub").hidden = raceState.phase !== "off";
+      if (raceState.phase === "off") {
+        runners = []; stage.setRace(null);
+        $("raceRes").hidden = true; $("raceBanner").hidden = true;
+        for (const pid in tags) delete tags[pid].tag.dataset.rank;
+        if (!(judge && judge.top)) stage.setWinner(null);
+      } else {
+        if (!runners.length) runners = visibleIds();
+        stage.setRace(runners);
+        $("results").hidden = true; $("closeResBtn").hidden = true; stage.setWinner(null);
+      }
+      if (raceState.phase === "done" && raceShownRound !== raceState.round) { raceShownRound = raceState.round; showRaceResults(); }
+      onChange();
+    });
+
+    function finishOrder() {
+      return runners.filter((pid) => raceTaps[pid] && typeof raceTaps[pid].f === "number")
+        .sort((a, b) => raceTaps[a].f - raceTaps[b].f);
+    }
+    const raceDist = (pid) => {
+      const d = raceTaps[pid];
+      return d ? Math.min(100, (Number(d.t) || 0) / TAPS_TO_FINISH * 100) : 0;
+    };
+
+    setInterval(() => {
+      if (raceState.phase !== "ready") return;
+      const now = serverNow(), b = $("raceBanner");
+      b.hidden = false;
+      if (now < raceState.startAt) {
+        const n = Math.ceil((raceState.startAt - now) / 1000);
+        b.className = n > 3 ? "small" : "";
+        b.textContent = n > 3 ? "📱 휴대폰 화면을 두드리면 달립니다! 준비하세요" : String(n);
+      } else if (now < raceState.startAt + 1200) {
+        b.className = ""; b.textContent = "출발!";
+      } else {
+        b.className = "small";
+        b.textContent = `⏱ ${Math.min((now - raceState.startAt) / 1000, RACE_LIMIT / 1000).toFixed(1)}초`;
+      }
+      const order = finishOrder();
+      runners.forEach((pid) => {
+        const rank = order.indexOf(pid) + 1;
+        stage.setRunner(pid, raceDist(pid), rank);
+        if (tags[pid]) { if (rank) tags[pid].tag.dataset.rank = rank + "위"; else delete tags[pid].tag.dataset.rank; }
+      });
+      const allDone = runners.length && order.length === runners.length;
+      if (!raceFinalizing && (allDone || now > raceState.startAt + RACE_LIMIT + 1500)) finalizeRace();
+    }, 100);
+
+    async function finalizeRace() {
+      raceFinalizing = true;
+      const { round, startAt } = raceState;
+      const rows = runners.map((pid) => {
+        const d = raceTaps[pid] || {};
+        return { pid, nick: String((players[pid] && players[pid].nick) || "").slice(0, 10),
+          f: typeof d.f === "number" ? d.f : null, dist: raceDist(pid) };
+      });
+      rows.sort((a, b) => (a.f !== null && b.f !== null) ? a.f - b.f : a.f !== null ? -1 : b.f !== null ? 1 : b.dist - a.dist);
+      const fmt = (r) => r.f !== null ? Math.max(0, (r.f - startAt) / 1000).toFixed(2) : null;
+      const upd = {
+        state: { phase: "done", round, startAt },
+        top: rows.slice(0, 10).map((r) => ({ pid: r.pid, nick: r.nick, time: fmt(r), dist: Math.round(r.dist) })),
+        total: rows.length,
+      };
+      rows.forEach((r, i) => { upd[`res/${round}/${r.pid}`] = { rank: i + 1, total: rows.length, time: fmt(r), dist: Math.round(r.dist) }; });
+      try { await fb.ref("face/race").update(upd); } catch (e) {}
+      raceFinalizing = false;
+    }
+
+    async function showRaceResults() {
+      $("raceBanner").hidden = false; $("raceBanner").className = ""; $("raceBanner").textContent = "🏁 경기 종료!";
+      let top = [], total = 0;
+      try {
+        top = (await fb.ref("face/race/top").get()).val() || [];
+        total = (await fb.ref("face/race/total").get()).val() || top.length;
+      } catch (e) {}
+      await new Promise((r) => setTimeout(r, 1500));
+      $("raceBanner").hidden = true;
+      const ol = $("raceList"); ol.textContent = ""; $("raceMore").textContent = "";
+      $("raceRes").hidden = false;
+      for (let i = top.length - 1; i >= 0; i--) {
+        const r = top[i];
+        const li = document.createElement("li"); if (i === 0) li.classList.add("first");
+        const rk = document.createElement("div"); rk.className = "rk"; rk.textContent = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1);
+        const im = document.createElement("img"); if (players[r.pid] && players[r.pid].img) im.src = players[r.pid].img;
+        const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = r.nick;
+        const sc = document.createElement("div"); sc.className = "sc"; sc.textContent = r.time ? r.time + "초" : r.dist + "m";
+        li.append(rk, im, nm, sc); ol.prepend(li);
+        await new Promise((res) => setTimeout(res, i <= 2 ? 1100 : 500));
+      }
+      if (total > top.length) $("raceMore").textContent = `TOP ${top.length}만 표시 · 나머지 ${total - top.length}명의 순위는 각자 휴대폰에서 확인하세요`;
+      if (top[0]) stage.setWinner(top[0].pid);
+    }
+
+    let raceStopConfirm = 0;
+    $("raceBtn").addEventListener("click", async () => {
+      const btn = $("raceBtn");
+      if (raceState.phase === "off") {
+        const ids = visibleIds();
+        if (!ids.length) return;
+        runners = ids;
+        btn.disabled = true;
+        try {
+          await fb.ref("face/race").set({ state: { phase: "ready", round: Date.now(), startAt: Math.round(serverNow() + READY_MS) } });
+        } catch (e) {}
+        btn.disabled = false;
+      } else if (raceState.phase === "ready") {
+        if (!raceStopConfirm) { btn.textContent = "한 번 더 누르면 경기 종료"; raceStopConfirm = setTimeout(() => { raceStopConfirm = 0; onChange(); }, 3000); return; }
+        clearTimeout(raceStopConfirm); raceStopConfirm = 0;
+        if (!raceFinalizing) finalizeRace();
+      } else {
+        await fb.ref("face/race").set({ state: { phase: "off", round: 0, startAt: 0 } });
+      }
+    });
+
     onChange = () => {
       const ids = visibleIds();
       stage.sync(ids, players);
       syncOverlay();
       $("empty").hidden = ids.length > 0;
       $("pCount").textContent = `참가 ${Object.keys(nicks).length}/${MAX_PLAYERS}명 · 등장 ${ids.length}명`;
-      $("judgeBtn").disabled = judging || !ids.length;
+      $("judgeBtn").disabled = judging || !ids.length || raceState.phase !== "off";
+      if (!raceStopConfirm) $("raceBtn").textContent = raceState.phase === "off" ? "🏃 100m 달리기" : raceState.phase === "ready" ? "■ 경기 끝내기" : "↩ 무대로 돌아가기";
+      $("raceBtn").disabled = judging || (raceState.phase === "off" && !ids.length);
       if (judge && judge.at !== lastJudgeAt && Array.isArray(judge.top)) { lastJudgeAt = judge.at; revealResults(); }
       if (!judge && lastJudgeAt) { lastJudgeAt = null; judgeRevealed = false; allScores = {}; $("results").hidden = true; $("closeResBtn").hidden = true; stage.setWinner(null); }
     };
@@ -728,9 +1032,12 @@
       const dark = M.dark, skin = M.skin;
       const body = new THREE.Mesh(G.body, cloth); body.position.y = 1.0; group.add(body);
       const shoulder = new THREE.Mesh(G.shoulder, cloth); shoulder.position.y = 1.5; group.add(shoulder);
-      [-0.2, 0.2].forEach((x) => {
-        const leg = new THREE.Mesh(G.leg, dark); leg.position.set(x, 0.28, 0); group.add(leg);
-        const foot = new THREE.Mesh(G.foot, dark); foot.scale.set(1, 0.6, 1.4); foot.position.set(x, 0.06, 0.06); group.add(foot);
+      const legs = [-0.2, 0.2].map((x) => {
+        const hip = new THREE.Group(); hip.position.set(x, 0.55, 0);
+        const leg = new THREE.Mesh(G.leg, dark); leg.position.y = -0.27; hip.add(leg);
+        const foot = new THREE.Mesh(G.foot, dark); foot.scale.set(1, 0.6, 1.4); foot.position.set(0, -0.49, 0.06); hip.add(foot);
+        group.add(hip);
+        return hip;
       });
       const arms = [-1, 1].map((s) => {
         const pivot = new THREE.Group(); pivot.position.set(0.5 * s, 1.42, 0);
@@ -748,7 +1055,7 @@
       scene.add(shadow);
       group.position.set(0, 9, 0);
       scene.add(group);
-      return { group, head, faceMat, arms, shadow, target: new THREE.Vector3(), vy: 0, phase: Math.random() * 6, imgKey: null, landed: false };
+      return { group, head, faceMat, arms, legs, shadow, target: new THREE.Vector3(), vy: 0, phase: Math.random() * 6, imgKey: null, landed: false };
     }
 
     // 인원에 맞춰 줄 수·칸 수를 정하고, 카메라가 전체를 담도록 물러납니다
@@ -792,7 +1099,60 @@
           if (c.landed) { c.vy = 0.12; } // 얼굴이 바뀌면 깡총
         }
       });
-      layout(ids);
+      lastIds = ids.slice();
+      if (!raceIds) layout(ids);
+      else for (const pid in chars) { const on = raceIds.includes(pid); chars[pid].group.visible = chars[pid].shadow.visible = on; }
+    }
+    let lastIds = [];
+
+    // ---------- 100m 트랙 ----------
+    let raceIds = null, trackGroup = null;
+    const runState = {};
+    let raceGeo = { L: 36, D: 2, laneGap: 1.8, scale: 1 };
+    function setRace(ids) {
+      if (ids && raceIds && ids.length === raceIds.length && ids.every((x, i) => x === raceIds[i])) return;
+      if (trackGroup) {
+        scene.remove(trackGroup);
+        trackGroup.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } });
+        trackGroup = null;
+      }
+      for (const k in runState) delete runState[k];
+      if (!ids) {
+        raceIds = null;
+        for (const pid in chars) { const c = chars[pid]; c.group.visible = c.shadow.visible = true; c.group.scale.setScalar(1); }
+        layout(lastIds.filter((pid) => chars[pid]));
+        return;
+      }
+      raceIds = ids.slice();
+      const n = Math.max(1, ids.length);
+      const laneGap = n <= 8 ? 1.8 : Math.max(0.42, 18 / n);
+      const D = n * laneGap, L = Math.max(36, D * 1.25);
+      raceGeo = { L, D, laneGap, scale: Math.min(1, laneGap / 1.5) };
+      trackGroup = new THREE.Group();
+      const zc = -D / 2 + laneGap / 2;
+      const track = new THREE.Mesh(new THREE.PlaneGeometry(L + 8, D + 1.5), new THREE.MeshStandardMaterial({ color: 0xc2410c, roughness: 0.95 }));
+      track.rotation.x = -Math.PI / 2; track.position.set(0, 0.004, zc); trackGroup.add(track);
+      const start = new THREE.Mesh(new THREE.PlaneGeometry(0.25, D + 1.5), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      start.rotation.x = -Math.PI / 2; start.position.set(-L / 2, 0.012, zc); trackGroup.add(start);
+      const cv = document.createElement("canvas"); cv.width = 16; cv.height = 128;
+      const cx = cv.getContext("2d");
+      for (let y = 0; y < 16; y++) for (let x = 0; x < 2; x++) { cx.fillStyle = (x + y) % 2 ? "#111" : "#fff"; cx.fillRect(x * 8, y * 8, 8, 8); }
+      const ft = new THREE.CanvasTexture(cv);
+      ft.magFilter = THREE.NearestFilter; ft.wrapT = THREE.RepeatWrapping; ft.repeat.set(1, Math.max(1, (D + 1.5) / 4));
+      ft.colorSpace = THREE.SRGBColorSpace;
+      const fin = new THREE.Mesh(new THREE.PlaneGeometry(0.9, D + 1.5), new THREE.MeshBasicMaterial({ map: ft }));
+      fin.rotation.x = -Math.PI / 2; fin.position.set(L / 2, 0.012, zc); trackGroup.add(fin);
+      if (n <= 30) for (let i = 0; i <= n; i++) {
+        const ln = new THREE.Mesh(new THREE.PlaneGeometry(L + 8, 0.05), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 }));
+        ln.rotation.x = -Math.PI / 2; ln.position.set(0, 0.008, laneGap / 2 - i * laneGap); trackGroup.add(ln);
+      }
+      scene.add(trackGroup);
+      ids.forEach((pid) => { runState[pid] = { target: 0, disp: 0, rank: 0, runPhase: Math.random() * 6 }; });
+      for (const pid in chars) { const on = ids.includes(pid); chars[pid].group.visible = chars[pid].shadow.visible = on; }
+    }
+    function setRunner(pid, dist, rank) {
+      const r = runState[pid]; if (!r) return;
+      r.target = dist; r.rank = rank;
     }
 
     function resize() {
@@ -808,28 +1168,57 @@
       return { x: (tmp.x + 1) / 2 * box.clientWidth, y: (1 - tmp.y) / 2 * box.clientHeight };
     }
     function screenPos(pid) {
-      const c = chars[pid]; if (!c) return null;
-      const g = c.group.position;
+      const c = chars[pid]; if (!c || !c.group.visible) return null;
+      const g = c.group.position, k = c.group.scale.y;
       return {
-        head: project(new THREE.Vector3(g.x, g.y + 3.05, g.z)),
-        foot: project(new THREE.Vector3(g.x, g.y - 0.05, g.z + 0.6)),
+        head: project(new THREE.Vector3(g.x, g.y + 3.05 * k, g.z)),
+        foot: project(new THREE.Vector3(g.x, g.y - 0.05, g.z + 0.6 * k)),
       };
     }
 
     const clock = new THREE.Clock();
     function frame() {
       const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+      // 달리기 중에는 트랙 전체가 보이도록
+      const v = raceIds ? { width: raceGeo.L + 8, depth: raceGeo.D, rows: 2 } : view;
       // 가로 폭 전체가 화면에 들어오는 거리 계산
       const hFov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
-      const fitW = (view.width / 2 + 1.2) / Math.tan(hFov / 2);
-      const fitH = (3.4 + view.depth * 0.45) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      const fitW = (v.width / 2 + 1.2) / Math.tan(hFov / 2);
+      const fitH = (3.4 + v.depth * 0.45) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
       const dist = Math.max(10.5, fitW, fitH);
-      const elev = view.rows > 1 ? 0.42 : 0.3;   // 줄이 많을수록 위에서 내려다봄
-      const cz = -view.depth / 2;
+      const elev = raceIds ? (raceIds.length > 10 ? 0.8 : 0.55) : v.rows > 1 ? 0.42 : 0.3;   // 줄이 많을수록 위에서 내려다봄
+      const cz = raceIds ? -raceGeo.D / 2 + raceGeo.laneGap / 2 : -v.depth / 2;
       camera.position.lerp(tmp.set(0, 1.4 + dist * Math.sin(elev), cz + dist * Math.cos(elev)), 0.05);
       camera.lookAt(0, 1.4, cz);
       for (const pid in chars) {
         const c = chars[pid], g = c.group.position;
+        if (raceIds) {
+          if (!c.group.visible) continue;
+          const r = runState[pid]; if (!r) continue;
+          const i = raceIds.indexOf(pid);
+          r.disp += (r.target - r.disp) * Math.min(1, dt * 4);
+          const gap = r.target - r.disp;
+          const running = gap > 0.15 && r.disp < 99.9;
+          r.runPhase += dt * (running ? 7 + Math.min(12, gap * 2) : 0);
+          const sw = running ? Math.sin(r.runPhase) : 0;
+          g.x = -raceGeo.L / 2 + r.disp / 100 * raceGeo.L;
+          g.z = -i * raceGeo.laneGap;
+          g.y = running ? Math.abs(Math.sin(r.runPhase)) * 0.18 * raceGeo.scale : 0;
+          c.group.scale.setScalar(raceGeo.scale);
+          c.group.rotation.y += (0.75 - c.group.rotation.y) * 0.1;   // 앞을 보며 달리되 얼굴이 보이게 비스듬히
+          c.legs[0].rotation.x = sw * 0.9; c.legs[1].rotation.x = -sw * 0.9;
+          const cheer = r.rank > 0 && r.rank <= 3 && r.disp > 99;
+          c.arms[0].rotation.x = cheer ? 0 : -sw * 1.0; c.arms[1].rotation.x = cheer ? 0 : sw * 1.0;
+          c.arms[0].rotation.z = cheer ? -2.4 - Math.sin(t * 8) * 0.3 : -0.25;
+          c.arms[1].rotation.z = cheer ? 2.4 + Math.sin(t * 8) * 0.3 : 0.25;
+          c.head.rotation.z = 0; c.head.rotation.y = 0;
+          c.shadow.position.set(g.x, 0.02, g.z); c.shadow.scale.setScalar(raceGeo.scale);
+          continue;
+        }
+        if (c.group.rotation.y !== 0) {
+          c.group.rotation.y *= 0.85; if (Math.abs(c.group.rotation.y) < 0.01) c.group.rotation.y = 0;
+          c.legs.forEach((l) => { l.rotation.x = 0; }); c.arms.forEach((a) => { a.rotation.x = 0; });
+        }
         g.x += (c.target.x - g.x) * Math.min(1, dt * 4);
         g.z += (c.target.z - g.z) * Math.min(1, dt * 4);
         // 떨어지기 + 통통 튀기
@@ -854,9 +1243,10 @@
         spotBeam.position.set(g.x, 4, g.z);
         spot.rotation.z = t * 2;
       } else spot.visible = spotBeam.visible = false;
-      if (winner && chars[winner]) {
+      if (winner && chars[winner] && chars[winner].group.visible) {
         const c = chars[winner];
         crown.visible = true;
+        crown.scale.setScalar(c.group.scale.y);
         c.head.updateMatrixWorld(true);
         c.head.getWorldPosition(crown.position);
         crown.position.y += 0.72 * c.group.scale.y;
@@ -868,7 +1258,7 @@
     requestAnimationFrame(frame);
 
     return {
-      sync, screenPos,
+      sync, screenPos, setRace, setRunner,
       spotlight: (pid) => { spotPid = pid; },
       setWinner: (pid) => { winner = pid || null; },
     };
@@ -905,13 +1295,38 @@
       }
       flat.style.setProperty("--w", Math.min(best, window.innerWidth * 0.11) + "px");
     }
+    const track = $("track2d");
+    let raceIds = null; const lanes = {};
+    function setRace(ids) {
+      if (ids && raceIds && ids.length === raceIds.length && ids.every((x, i) => x === raceIds[i])) return;
+      track.textContent = ""; for (const k in lanes) delete lanes[k];
+      if (!ids) { raceIds = null; track.hidden = true; flat.hidden = false; return; }
+      raceIds = ids.slice(); track.hidden = false; flat.hidden = true;
+      const st = document.createElement("div"); st.className = "line"; st.style.left = "6%";
+      const fi = document.createElement("div"); fi.className = "line finish"; fi.style.left = "94%";
+      track.append(st, fi);
+      ids.forEach((pid) => {
+        const lane = document.createElement("div"); lane.className = "lane";
+        const run = document.createElement("div"); run.className = "runner"; run.style.left = "6%";
+        run.style.transition = "left .35s linear";
+        const img = document.createElement("img"); if (els[pid]) img.src = els[pid].img.src;
+        run.appendChild(img); lane.appendChild(run); track.appendChild(lane);
+        lanes[pid] = run;
+      });
+    }
+    function setRunner(pid, dist) { if (lanes[pid]) lanes[pid].style.left = (6 + dist * 0.88) + "%"; }
     function screenPos(pid) {
+      if (raceIds) {
+        const l = lanes[pid]; if (!l) return null;
+        const r = l.getBoundingClientRect();
+        return { head: { x: r.left + r.width / 2, y: r.top - 4 }, foot: { x: Math.max(60, r.left - 60), y: r.top + r.height / 2 - 12 } };
+      }
       const e = els[pid]; if (!e) return null;
       const r = e.root.getBoundingClientRect();
       return { head: { x: r.left + r.width / 2, y: r.top - 8 }, foot: { x: r.left + r.width / 2, y: r.bottom + 4 } };
     }
     return {
-      sync, screenPos,
+      sync, screenPos, setRace, setRunner,
       spotlight: (pid) => { for (const k in els) els[k].root.style.filter = pid && k !== pid ? "brightness(.4)" : ""; },
       setWinner: (pid) => { for (const k in els) els[k].root.classList.toggle("win", k === pid); },
     };
