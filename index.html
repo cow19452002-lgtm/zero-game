@@ -24,16 +24,15 @@
   ======================================================================
 -->
 <script>
- const firebaseConfig = {
-  apiKey: "AIzaSyAfdYEgUyT8zk6ln_-B7IBUVY0yyd_laZE",
-  authDomain: "zero-game-a1511.firebaseapp.com",
-  databaseURL: "https://zero-game-a1511-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "zero-game-a1511",
-  storageBucket: "zero-game-a1511.firebasestorage.app",
-  messagingSenderId: "42120447539",
-  appId: "1:42120447539:web:cb19dea02a0f2073044546"
-};
-
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyAfdYEgUyT8zk6ln_-B7IBUVY0yyd_laZE",
+    authDomain: "zero-game-a1511.firebaseapp.com",
+    databaseURL: "https://zero-game-a1511-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "zero-game-a1511",
+    storageBucket: "zero-game-a1511.firebasestorage.app",
+    messagingSenderId: "42120447539",
+    appId: "1:42120447539:web:cb19dea02a0f2073044546"
+  };
   /* 예시:
   const FIREBASE_CONFIG = {
     apiKey: "....",
@@ -49,6 +48,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body {
     margin: 0; min-height: 100vh; padding: 16px;
     font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif;
@@ -199,6 +199,13 @@
   const DEFAULT_STATE = { round: 1, open: true, mode: "hide3", maxTries: 3 };
   const $ = (id) => document.getElementById(id);
 
+  if (typeof FIREBASE_CONFIG === "undefined") {
+    const c = $("conn");
+    c.style.cssText = "background:#7c2d12;color:#fff;padding:12px;border-radius:10px;font-size:16px;opacity:1;margin-top:8px";
+    c.textContent = "⚠ Firebase 설정값을 붙여넣은 부분에 형식 오류가 있습니다. 파일 위쪽 FIREBASE_CONFIG 부분을 확인하세요. (import 줄, 'const firebaseConfig =' 줄이 들어가면 안 됩니다)";
+    $("ctrlBox").hidden = true; $("playView").hidden = true;
+    return;
+  }
   const params = new URLSearchParams(location.search);
   const isHost = params.has("host");
   const online = !!(FIREBASE_CONFIG && window.firebase);
