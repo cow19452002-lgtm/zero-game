@@ -47,11 +47,11 @@
   #stage canvas { display: block; }
   #overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
   .tag { position: absolute; transform: translate(-50%, 0); background: rgba(15,23,42,.8); color: #fff;
-    padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: clamp(14px, 1.4vw, 24px); white-space: nowrap; }
+    padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: calc(clamp(14px, 1.4vw, 24px) * var(--s, 1)); white-space: nowrap; }
   .tag .score { color: #facc15; margin-left: 6px; }
   .bubble { position: absolute; transform: translate(-50%, -100%); background: #fff; color: #0f172a;
-    padding: 10px 14px; border-radius: 16px; font-weight: 700; font-size: clamp(14px, 1.5vw, 26px);
-    max-width: 22vw; text-align: center; line-height: 1.3; box-shadow: 0 6px 20px rgba(0,0,0,.35);
+    padding: 10px 14px; border-radius: 16px; font-weight: 700; font-size: calc(clamp(14px, 1.5vw, 26px) * var(--s, 1));
+    max-width: calc(22vw * var(--s, 1)); z-index: 2; text-align: center; line-height: 1.3; box-shadow: 0 6px 20px rgba(0,0,0,.35);
     word-break: keep-all; overflow-wrap: anywhere; transition: opacity .4s; }
   .bubble::after { content: ""; position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%);
     border: 10px solid transparent; border-top-color: #fff; border-bottom: 0; }
@@ -86,13 +86,14 @@
   #hostErr { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); max-width: 600px; }
 
   /* 2D 대체 무대 (3D를 못 불러올 때) */
-  #flat { position: absolute; left: 0; right: 0; bottom: 8%; top: 22%; display: flex; flex-wrap: wrap; align-content: flex-end;
+  #flat { position: absolute; left: 0; right: 0; bottom: 4%; top: 15%; display: flex; flex-wrap: wrap; align-content: flex-end;
     justify-content: center; gap: 2vw; padding: 0 4vw; }
-  .fchar { position: relative; width: 11vw; min-width: 90px; display: flex; flex-direction: column; align-items: center;
+  #flat { gap: calc(var(--w, 11vw) * 0.2); }
+  .fchar { position: relative; width: var(--w, 11vw); min-width: min(90px, var(--w, 11vw)); display: flex; flex-direction: column; align-items: center;
     animation: bob 2.4s ease-in-out infinite; }
   .fchar .fhead { width: 100%; aspect-ratio: 1; border-radius: 50%; background: #ffe0bd; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,.4); }
   .fchar .fhead img { width: 100%; height: 100%; }
-  .fchar .fbody { width: 70%; height: 6vw; min-height: 50px; border-radius: 40% 40% 12px 12px; margin-top: -6%; }
+  .fchar .fbody { width: 70%; height: calc(var(--w, 11vw) * 0.55); border-radius: 40% 40% 12px 12px; margin-top: -6%; }
   .fchar.win { animation: jump .6s ease-in-out infinite; }
   @keyframes bob { 50% { transform: translateY(-8px); } }
   @keyframes jump { 50% { transform: translateY(-30px); } }
@@ -199,7 +200,7 @@
 </div>
 
 <script type="module">
-  const MAX_PLAYERS = 12;
+  const MAX_PLAYERS = 99;   // 무료 요금제 동시 접속 100개 중 진행자 1개를 뺀 값
   const BUBBLE_MS = 12000;
   const SKIN = "#ffe0bd";
   const $ = (id) => document.getElementById(id);
@@ -224,18 +225,26 @@
   if (!myId) { myId = "f" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); lsSet("facePid", myId); }
 
   let offset = 0;
-  fb.ref(".info/serverTimeOffset").on("value", (s) => { offset = Number(s.val()) || 0; });
   const serverNow = () => Date.now() + offset;
 
-  // 공유 데이터
+  // 공유 데이터 (실시간 구독은 진행자 화면만 합니다)
   let players = {};   // pid -> {nick, img, updatedAt, joinedAt}
+  let nicks = {};     // pid -> nick
   let msgs = {};      // pid -> {text, at}
-  let judge = null;   // {at, results:[{pid,nick,score,comment}]}
+  let judge = null;   // {at, total, top:[{pid,nick,score,comment}]}
   let onChange = () => {};
-  fb.ref("face/players").on("value", (s) => { players = s.val() || {}; onChange(); },
-    () => fatal("데이터베이스에 접근할 수 없습니다. Firebase Realtime Database 규칙(테스트 모드)을 확인하세요."));
-  fb.ref("face/msgs").on("value", (s) => { msgs = s.val() || {}; onChange(); });
-  fb.ref("face/judge").on("value", (s) => { judge = s.val() || null; onChange(); });
+
+  // 휴대폰은 실시간 연결을 유지하지 않고 REST로 필요한 순간만 통신합니다.
+  // (무료 요금제 동시 접속 100개 한도를 휴대폰들이 차지하지 않도록)
+  const DB_URL = String(FIREBASE_CONFIG.databaseURL || "").replace(/\/$/, "");
+  const SV_TS = { ".sv": "timestamp" };
+  async function rest(path, method = "GET", body) {
+    const r = await fetch(`${DB_URL}/${path}.json`, {
+      method, body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }
 
   function hashStr(s) { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
   const clothesColor = (pid) => `hsl(${hashStr(pid) % 360}, 65%, 52%)`;
@@ -248,10 +257,26 @@
   function player() {
     $("player").hidden = false;
     $("nickInput").value = lsGet("faceNick") || "";
-    fb.ref(".info/connected").on("value", (s) => {
-      $("pConn").textContent = s.val() ? "● 연결됨" : "연결 중…";
-      if (s.val()) $("joinBtn").disabled = false;
-    });
+    let joinedNick = null;   // 서버에 등록된 내 닉네임 (없으면 null)
+    let myResult = null;     // 외모 평가 결과
+    let sentFace = false;    // 얼굴을 보낸 적이 있는지
+    const setConn = (ok) => { $("pConn").textContent = ok ? "● 연결됨" : "연결이 불안정해요… 다시 시도 중"; };
+
+    // 4초마다 내 상태만 확인 (초기화되었는지, 평가 결과가 나왔는지)
+    async function poll() {
+      try {
+        const [n, sc, up] = await Promise.all([rest("face/nicks/" + myId), rest("face/scores/" + myId),
+          rest("face/players/" + myId + "/updatedAt")]);
+        joinedNick = typeof n === "string" ? n : null;
+        sentFace = !!up;
+        myResult = sc && typeof sc === "object" ? sc : null;
+        setConn(true);
+        $("joinBtn").disabled = false;
+        onChange();
+      } catch (e) { setConn(false); }
+    }
+    poll();
+    setInterval(poll, 4000);
 
     // ---- 참가 ----
     $("joinBtn").addEventListener("click", async () => {
@@ -259,18 +284,25 @@
       const msg = $("joinMsg"); msg.hidden = true;
       const fail = (t) => { msg.hidden = false; msg.textContent = t; };
       if (!nick) return fail("닉네임을 입력해 주세요.");
-      const others = Object.entries(players).filter(([pid]) => pid !== myId);
-      if (others.length >= MAX_PLAYERS) return fail(`참가 인원(${MAX_PLAYERS}명)이 모두 찼습니다.`);
-      if (others.some(([, p]) => p.nick === nick)) return fail("같은 닉네임이 있어요. 다른 닉네임을 써 주세요.");
-      lsSet("faceNick", nick);
       $("joinBtn").disabled = true;
-      try { await fb.ref("face/players/" + myId).update({ nick, joinedAt: TS }); }
-      catch (e) { fail("참가하지 못했습니다. 연결을 확인해 주세요."); }
+      try {
+        const all = (await rest("face/nicks")) || {};
+        const others = Object.entries(all).filter(([pid]) => pid !== myId);
+        if (others.length >= MAX_PLAYERS) { $("joinBtn").disabled = false; return fail(`참가 인원(${MAX_PLAYERS}명)이 모두 찼습니다.`); }
+        if (others.some(([, n]) => n === nick)) { $("joinBtn").disabled = false; return fail("같은 닉네임이 있어요. 다른 닉네임을 써 주세요."); }
+        lsSet("faceNick", nick);
+        await rest("face/nicks/" + myId, "PUT", nick);
+        await rest("face/players/" + myId, "PATCH", { nick, joinedAt: SV_TS });
+        joinedNick = nick;
+        onChange();
+      } catch (e) { fail("참가하지 못했습니다. 인터넷 연결을 확인해 주세요."); }
       $("joinBtn").disabled = false;
     });
-    $("leaveBtn").addEventListener("click", () => {
-      fb.ref("face/players/" + myId).remove();
-      fb.ref("face/msgs/" + myId).remove();
+    $("leaveBtn").addEventListener("click", async () => {
+      try {
+        await rest("face", "PATCH", { ["nicks/" + myId]: null, ["players/" + myId]: null, ["msgs/" + myId]: null });
+      } catch (e) {}
+      joinedNick = null; sentFace = false; onChange();
     });
 
     // ---- 그림판 ----
@@ -360,7 +392,8 @@
       if (!strokes.length) { $("faceOk").textContent = "먼저 얼굴을 그려 주세요 ✏️"; return; }
       $("sendFace").disabled = true;
       try {
-        await fb.ref("face/players/" + myId).update({ img: exportFace(), updatedAt: TS });
+        await rest("face/players/" + myId, "PATCH", { nick: joinedNick, img: exportFace(), updatedAt: SV_TS });
+        sentFace = true; onChange();
         $("faceOk").textContent = "✔ 프로젝터에 등장했어요! 다시 그려서 보내면 바뀌어요.";
       } catch (e) { $("faceOk").textContent = "보내지 못했어요. 다시 시도해 주세요."; }
       $("sendFace").disabled = false;
@@ -372,7 +405,7 @@
       if (!text) return;
       $("msgBtn").disabled = true;
       try {
-        await fb.ref("face/msgs/" + myId).set({ text, at: TS });
+        await rest("face/msgs/" + myId, "PUT", { text, at: SV_TS });
         $("msgInput").value = "";
         $("msgOk").textContent = "✔ 말풍선이 떴어요!";
         setTimeout(() => { $("msgOk").textContent = ""; }, 3000);
@@ -383,23 +416,21 @@
     $("msgInput").addEventListener("keydown", (e) => { if (e.key === "Enter") sendMsg(); });
 
     onChange = () => {
-      const me = players[myId];
-      $("joinBox").hidden = !!me;
-      $("drawBox").hidden = !me;
-      if (!me) return;
-      $("meNick").textContent = me.nick;
-      const hasFace = !!me.img;
-      $("msgInput").disabled = !hasFace;
-      $("msgBtn").disabled = !hasFace;
-      $("msgInput").placeholder = hasFace ? "하고 싶은 말 (40자)" : "얼굴을 먼저 보내면 쓸 수 있어요";
-      const r = judge && Array.isArray(judge.results) ? judge.results.findIndex((x) => x.pid === myId) : -1;
-      $("scoreCard").hidden = r < 0;
-      if (r >= 0) {
-        const res = judge.results[r];
+      $("joinBox").hidden = !!joinedNick;
+      $("drawBox").hidden = !joinedNick;
+      if (!joinedNick) return;
+      $("meNick").textContent = joinedNick;
+      const msgFocused = document.activeElement === $("msgInput");
+      $("msgInput").disabled = !sentFace;
+      $("msgBtn").disabled = !sentFace;
+      $("msgInput").placeholder = sentFace ? "하고 싶은 말 (40자)" : "얼굴을 먼저 보내면 쓸 수 있어요";
+      if (msgFocused) $("msgInput").focus();
+      $("scoreCard").hidden = !myResult;
+      if (myResult) {
         const box = $("myScore"); box.textContent = "";
-        const t = document.createElement("div"); t.textContent = `외모 평가 ${r + 1}위 / ${judge.results.length}명`;
-        const s = document.createElement("b"); s.textContent = res.score + "점";
-        const c = document.createElement("div"); c.textContent = res.comment;
+        const t = document.createElement("div"); t.textContent = `외모 평가 ${myResult.rank}위 / ${myResult.total}명`;
+        const s = document.createElement("b"); s.textContent = myResult.score + "점";
+        const c = document.createElement("div"); c.textContent = String(myResult.comment || "");
         box.append(t, s, c);
       }
     };
@@ -415,6 +446,12 @@
     try { new QRCode($("qr"), { text: joinUrl, width: 150, height: 150, correctLevel: QRCode.CorrectLevel.M }); }
     catch (e) { $("qr").textContent = "QR 오류"; }
     fb.ref(".info/connected").on("value", (s) => { $("conn").textContent = s.val() ? "● 실시간 연결됨" : "연결 중…"; });
+    fb.ref(".info/serverTimeOffset").on("value", (s) => { offset = Number(s.val()) || 0; });
+    fb.ref("face/players").on("value", (s) => { players = s.val() || {}; onChange(); },
+      () => { $("hostErr").hidden = false; $("hostErr").textContent = "⚠ 데이터베이스에 접근할 수 없습니다. Firebase 규칙(테스트 모드)을 확인하세요."; });
+    fb.ref("face/nicks").on("value", (s) => { nicks = s.val() || {}; onChange(); });
+    fb.ref("face/msgs").on("value", (s) => { msgs = s.val() || {}; onChange(); });
+    fb.ref("face/judge").on("value", (s) => { judge = s.val() || null; onChange(); });
 
     // ---------- 무대 (3D, 실패하면 2D) ----------
     let stage = null;
@@ -431,6 +468,8 @@
     function syncOverlay() {
       const ov = $("overlay");
       const ids = visibleIds();
+      const n = ids.length;
+      ov.style.setProperty("--s", n <= 12 ? 1 : n <= 30 ? 0.75 : n <= 60 ? 0.6 : 0.5);
       Object.keys(tags).forEach((pid) => {
         if (!ids.includes(pid)) { tags[pid].tag.remove(); tags[pid].bubble.remove(); delete tags[pid]; }
       });
@@ -472,11 +511,8 @@
 
     // ---------- 외모 평가 (재미용 점수) ----------
     let judgeRevealed = false, judging = false, lastJudgeAt = null;
-    const scoreOf = (pid) => {
-      if (!judge || !Array.isArray(judge.results)) return null;
-      const r = judge.results.find((x) => x.pid === pid);
-      return r ? r.score : null;
-    };
+    let allScores = {};   // pid -> score (이번 평가 전체)
+    const scoreOf = (pid) => (pid in allScores ? allScores[pid] : null);
 
     function loadImg(src) {
       return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
@@ -560,25 +596,34 @@
       // 심사 연출
       const banner = $("judgeBanner"); banner.hidden = false;
       const lines = ["심사위원 봇이 얼굴을 스캔 중…", "이목구비 비율 분석 중…", "색감과 대칭을 계산 중…", "두구두구두구…"];
-      const steps = Math.max(8, ids.length * 2);
+      const steps = Math.min(16, Math.max(8, ids.length * 2));
       for (let i = 0; i < steps; i++) {
-        stage.spotlight(ids[i % ids.length]);
+        stage.spotlight(ids[ids.length <= 8 ? i % ids.length : Math.floor(Math.random() * ids.length)]);
         banner.textContent = lines[Math.floor(i / steps * lines.length)];
         await new Promise((r) => setTimeout(r, 450));
       }
       stage.spotlight(null);
       banner.hidden = true;
-      await fb.ref("face/judge").set({ at: round, results });
+      allScores = {};
+      const upd = { judge: { at: round, total: results.length, top: results.slice(0, 10) }, scores: null };
+      results.forEach((r, i) => {
+        allScores[r.pid] = r.score;
+        upd["scores/" + r.pid] = { rank: i + 1, total: results.length, score: r.score, comment: r.comment };
+      });
+      await fb.ref("face").update(upd);
       judging = false;
       $("judgeBtn").disabled = false;
     }
 
+    let revealExtra = null;
     async function revealResults() {
       const ol = $("resList"); ol.textContent = "";
+      if (revealExtra) { revealExtra.remove(); revealExtra = null; }
       $("results").hidden = false;
       $("closeResBtn").hidden = false;
-      const res = judge.results;
+      const res = judge.top;
       const n = res.length;
+      if (!Object.keys(allScores).length) res.forEach((r) => { allScores[r.pid] = r.score; });
       // 꼴찌부터 1등까지 한 명씩 공개
       for (let i = n - 1; i >= 0; i--) {
         const r = res[i];
@@ -593,6 +638,11 @@
         ol.prepend(li);
         await new Promise((r2) => setTimeout(r2, i === 0 ? 0 : (i <= 2 ? 1300 : 700)));
       }
+      if ((judge.total || 0) > n) {
+        const more = document.createElement("div"); more.className = "small"; more.style.margin = "6px 0";
+        more.textContent = `TOP ${n}만 표시 · 나머지 ${judge.total - n}명의 순위는 각자 휴대폰에서 확인하세요`;
+        ol.after(more); revealExtra = more;
+      }
       judgeRevealed = true;
       stage.setWinner(res[0] && res[0].pid);
       syncOverlay();
@@ -601,8 +651,8 @@
     $("judgeBtn").addEventListener("click", runJudge);
     $("closeResBtn").addEventListener("click", async () => {
       $("results").hidden = true; $("closeResBtn").hidden = true;
-      judgeRevealed = false; stage.setWinner(null);
-      await fb.ref("face/judge").remove();
+      judgeRevealed = false; stage.setWinner(null); allScores = {}; syncOverlay();
+      await fb.ref("face").update({ judge: null, scores: null });
     });
     let resetT = 0;
     $("resetBtn").addEventListener("click", async () => {
@@ -617,10 +667,10 @@
       stage.sync(ids, players);
       syncOverlay();
       $("empty").hidden = ids.length > 0;
-      $("pCount").textContent = `참가 ${Object.keys(players).length}/${MAX_PLAYERS}명 · 등장 ${ids.length}명`;
+      $("pCount").textContent = `참가 ${Object.keys(nicks).length}/${MAX_PLAYERS}명 · 등장 ${ids.length}명`;
       $("judgeBtn").disabled = judging || !ids.length;
-      if (judge && judge.at !== lastJudgeAt && Array.isArray(judge.results)) { lastJudgeAt = judge.at; revealResults(); }
-      if (!judge && lastJudgeAt) { lastJudgeAt = null; judgeRevealed = false; $("results").hidden = true; $("closeResBtn").hidden = true; stage.setWinner(null); }
+      if (judge && judge.at !== lastJudgeAt && Array.isArray(judge.top)) { lastJudgeAt = judge.at; revealResults(); }
+      if (!judge && lastJudgeAt) { lastJudgeAt = null; judgeRevealed = false; allScores = {}; $("results").hidden = true; $("closeResBtn").hidden = true; stage.setWinner(null); }
     };
     onChange();
   }
@@ -653,31 +703,47 @@
       new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.6, roughness: 0.3, side: THREE.DoubleSide }));
     crown.visible = false; scene.add(crown);
 
+    // 모든 캐릭터가 같이 쓰는 모양·재질 (인원이 많아도 가볍게)
+    const G = {
+      body: new THREE.CylinderGeometry(0.42, 0.56, 1.0, 24),
+      shoulder: new THREE.SphereGeometry(0.42, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2),
+      leg: new THREE.CylinderGeometry(0.13, 0.13, 0.55, 12),
+      foot: new THREE.SphereGeometry(0.16, 12, 8),
+      arm: new THREE.CylinderGeometry(0.09, 0.1, 0.72, 10),
+      hand: new THREE.SphereGeometry(0.12, 10, 8),
+      head: new THREE.SphereGeometry(0.66, 32, 22),
+      // 앞쪽 반구에 그림을 입힘 (phi 0.1π~0.9π, theta 0.12π~0.88π)
+      face: new THREE.SphereGeometry(0.665, 32, 22, Math.PI * 0.1, Math.PI * 0.8, Math.PI * 0.12, Math.PI * 0.76),
+      shadow: new THREE.CircleGeometry(0.7, 24),
+    };
+    const M = {
+      dark: new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.8 }),
+      skin: new THREE.MeshStandardMaterial({ color: new THREE.Color(SKIN), roughness: 0.7 }),
+      shadow: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }),
+    };
+
     function makeChar(pid) {
       const group = new THREE.Group();
       const cloth = new THREE.MeshStandardMaterial({ color: new THREE.Color(clothesColor(pid)), roughness: 0.6 });
-      const dark = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.8 });
-      const skin = new THREE.MeshStandardMaterial({ color: new THREE.Color(SKIN), roughness: 0.7 });
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.56, 1.0, 28), cloth); body.position.y = 1.0; group.add(body);
-      const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.42, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), cloth); shoulder.position.y = 1.5; group.add(shoulder);
+      const dark = M.dark, skin = M.skin;
+      const body = new THREE.Mesh(G.body, cloth); body.position.y = 1.0; group.add(body);
+      const shoulder = new THREE.Mesh(G.shoulder, cloth); shoulder.position.y = 1.5; group.add(shoulder);
       [-0.2, 0.2].forEach((x) => {
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.55, 16), dark); leg.position.set(x, 0.28, 0); group.add(leg);
-        const foot = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 10), dark); foot.scale.set(1, 0.6, 1.4); foot.position.set(x, 0.06, 0.06); group.add(foot);
+        const leg = new THREE.Mesh(G.leg, dark); leg.position.set(x, 0.28, 0); group.add(leg);
+        const foot = new THREE.Mesh(G.foot, dark); foot.scale.set(1, 0.6, 1.4); foot.position.set(x, 0.06, 0.06); group.add(foot);
       });
       const arms = [-1, 1].map((s) => {
         const pivot = new THREE.Group(); pivot.position.set(0.5 * s, 1.42, 0);
-        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 0.72, 12), cloth); arm.position.y = -0.36; pivot.add(arm);
-        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), skin); hand.position.y = -0.76; pivot.add(hand);
+        const arm = new THREE.Mesh(G.arm, cloth); arm.position.y = -0.36; pivot.add(arm);
+        const hand = new THREE.Mesh(G.hand, skin); hand.position.y = -0.76; pivot.add(hand);
         pivot.rotation.z = 0.25 * s; group.add(pivot);
         return pivot;
       });
       const head = new THREE.Group(); head.position.y = 2.25; group.add(head);
-      head.add(new THREE.Mesh(new THREE.SphereGeometry(0.66, 40, 28), skin));
+      head.add(new THREE.Mesh(G.head, skin));
       const faceMat = new THREE.MeshStandardMaterial({ transparent: true, alphaTest: 0.05, roughness: 0.75 });
-      // 앞쪽 반구에 그림을 입힘 (phi 0.1π~0.9π, theta 0.12π~0.88π)
-      const face = new THREE.Mesh(new THREE.SphereGeometry(0.665, 40, 28, Math.PI * 0.1, Math.PI * 0.8, Math.PI * 0.12, Math.PI * 0.76), faceMat);
-      head.add(face);
-      const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.7, 32), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3 }));
+      head.add(new THREE.Mesh(G.face, faceMat));
+      const shadow = new THREE.Mesh(G.shadow, M.shadow);
       shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.01;
       scene.add(shadow);
       group.position.set(0, 9, 0);
@@ -685,22 +751,32 @@
       return { group, head, faceMat, arms, shadow, target: new THREE.Vector3(), vy: 0, phase: Math.random() * 6, imgKey: null, landed: false };
     }
 
-    let layoutRows = 1;
+    // 인원에 맞춰 줄 수·칸 수를 정하고, 카메라가 전체를 담도록 물러납니다
+    const GAP = 2.1, ROW_GAP = 2.4;
+    let view = { width: GAP * 7, depth: 0, rows: 1 };
     function layout(ids) {
-      const perRow = ids.length <= 7 ? 7 : 6;
-      layoutRows = Math.max(1, Math.ceil(ids.length / perRow));
+      const n = Math.max(1, ids.length);
+      const aspect = Math.max(1, box.clientWidth / Math.max(1, box.clientHeight));
+      const perRow = n <= 7 ? 7 : Math.ceil(Math.sqrt(n * aspect * 1.4));
+      const rows = Math.ceil(n / perRow);
+      view = { width: Math.min(n, perRow) * GAP, depth: (rows - 1) * ROW_GAP, rows };
       ids.forEach((pid, i) => {
         const row = Math.floor(i / perRow);
         const inRow = Math.min(perRow, ids.length - row * perRow);
         const col = i % perRow;
-        const gap = 2.1;
-        chars[pid].target.set((col - (inRow - 1) / 2) * gap + (row % 2) * 0.5, 0, -row * 2.6);
+        chars[pid].target.set((col - (inRow - 1) / 2) * GAP + (row % 2) * GAP * 0.25, 0, -row * ROW_GAP);
       });
     }
 
     function sync(ids, players) {
       Object.keys(chars).forEach((pid) => {
-        if (!ids.includes(pid)) { scene.remove(chars[pid].group); scene.remove(chars[pid].shadow); delete chars[pid]; }
+        if (!ids.includes(pid)) {
+          const c = chars[pid];
+          scene.remove(c.group); scene.remove(c.shadow);
+          if (c.faceMat.map) c.faceMat.map.dispose();
+          c.faceMat.dispose();
+          delete chars[pid];
+        }
       });
       ids.forEach((pid) => {
         if (!chars[pid]) chars[pid] = makeChar(pid);
@@ -743,11 +819,15 @@
     const clock = new THREE.Clock();
     function frame() {
       const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
-      const camZ = 10.5 + (layoutRows - 1) * 2.6, camY = 3.4 + (layoutRows - 1) * 1.2;
-      const n = Object.keys(chars).length;
-      const widen = n > 5 ? (n - 5) * 0.6 : 0;
-      camera.position.lerp(tmp.set(0, camY + widen * 0.3, camZ + widen), 0.05);
-      camera.lookAt(0, 1.6, -(layoutRows - 1) * 1.3);
+      // 가로 폭 전체가 화면에 들어오는 거리 계산
+      const hFov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
+      const fitW = (view.width / 2 + 1.2) / Math.tan(hFov / 2);
+      const fitH = (3.4 + view.depth * 0.45) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      const dist = Math.max(10.5, fitW, fitH);
+      const elev = view.rows > 1 ? 0.42 : 0.3;   // 줄이 많을수록 위에서 내려다봄
+      const cz = -view.depth / 2;
+      camera.position.lerp(tmp.set(0, 1.4 + dist * Math.sin(elev), cz + dist * Math.cos(elev)), 0.05);
+      camera.lookAt(0, 1.4, cz);
       for (const pid in chars) {
         const c = chars[pid], g = c.group.position;
         g.x += (c.target.x - g.x) * Math.min(1, dt * 4);
@@ -814,6 +894,16 @@
         }
         if (els[pid].img.src !== players[pid].img) els[pid].img.src = players[pid].img;
       });
+      // 가로·세로 모두 화면 안에 들어가는 가장 큰 캐릭터 크기를 찾음
+      const n = Math.max(1, ids.length);
+      const W = flat.clientWidth * 0.94, H = flat.clientHeight;
+      let best = 0;
+      for (let cols = 1; cols <= n; cols++) {
+        const rows = Math.ceil(n / cols);
+        const w = Math.min(W / (cols * 1.2), H / (rows * 1.95));
+        if (w > best) best = w;
+      }
+      flat.style.setProperty("--w", Math.min(best, window.innerWidth * 0.11) + "px");
     }
     function screenPos(pid) {
       const e = els[pid]; if (!e) return null;
