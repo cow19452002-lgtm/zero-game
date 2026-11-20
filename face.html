@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>내 얼굴 캐릭터</title>
+<!--
+  내 얼굴 캐릭터 — 현장 이벤트용
+  - 진행자(프로젝터): 주소 끝에 ?host 를 붙여 열기 → QR, 3D 무대, 외모 평가하기
+  - 참가자(휴대폰): QR로 접속 → 얼굴 그리기 → 보내기 → 말풍선 보내기
+  ※ 점수는 그림의 색·대칭·채움 정도 등으로 계산하는 재미용 점수입니다 (실제 AI 아님).
+  ※ Firebase 테스트 모드 DB는 행사 후 삭제하세요.
+-->
+<script>
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyAfdYEgUyT8zk6ln_-B7IBUVY0yyd_laZE",
+    authDomain: "zero-game-a1511.firebaseapp.com",
+    databaseURL: "https://zero-game-a1511-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "zero-game-a1511",
+    storageBucket: "zero-game-a1511.firebasestorage.app",
+    messagingSenderId: "42120447539",
+    appId: "1:42120447539:web:cb19dea02a0f2073044546"
+  };
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif;
+    background: #0f172a; color: #e2e8f0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; font-weight: 800; border: 0; border-radius: 12px; cursor: pointer; touch-action: manipulation; }
+  button:disabled { opacity: .35; cursor: default; }
+  .card { background: #1e293b; border-radius: 16px; padding: 14px; }
+  .notice { background: #7c2d12; color: #fff; border-radius: 10px; padding: 12px; font-size: 15px; line-height: 1.5; margin: 8px 0; }
+  .small { font-size: 13px; opacity: .7; }
+
+  /* ================= 진행자 ================= */
+  #host { position: fixed; inset: 0; }
+  #stage { position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 30%, #334155 0%, #0f172a 70%); overflow: hidden; }
+  #stage canvas { display: block; }
+  #overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .tag { position: absolute; transform: translate(-50%, 0); background: rgba(15,23,42,.8); color: #fff;
+    padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: clamp(14px, 1.4vw, 24px); white-space: nowrap; }
+  .tag .score { color: #facc15; margin-left: 6px; }
+  .bubble { position: absolute; transform: translate(-50%, -100%); background: #fff; color: #0f172a;
+    padding: 10px 14px; border-radius: 16px; font-weight: 700; font-size: clamp(14px, 1.5vw, 26px);
+    max-width: 22vw; text-align: center; line-height: 1.3; box-shadow: 0 6px 20px rgba(0,0,0,.35);
+    word-break: keep-all; overflow-wrap: anywhere; transition: opacity .4s; }
+  .bubble::after { content: ""; position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%);
+    border: 10px solid transparent; border-top-color: #fff; border-bottom: 0; }
+  #qrBox { position: absolute; left: 16px; top: 16px; text-align: center; padding: 12px; }
+  #qr { background: #fff; padding: 8px; border-radius: 10px; display: inline-block; }
+  #qr img, #qr canvas { display: block; width: 150px; height: 150px; }
+  #qrBox p { margin: 8px 0 0; font-weight: 800; }
+  #hostTitle { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); font-size: clamp(22px, 2.6vw, 44px);
+    font-weight: 900; text-shadow: 0 4px 16px rgba(0,0,0,.5); white-space: nowrap; }
+  #hostSub { position: absolute; top: calc(18px + clamp(30px, 3.4vw, 58px)); left: 50%; transform: translateX(-50%);
+    font-size: clamp(14px, 1.3vw, 22px); opacity: .85; white-space: nowrap; }
+  #ctrl { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  #ctrl button { padding: 12px 18px; background: #475569; color: #fff; font-size: 16px; }
+  #ctrl button.go { background: #f59e0b; color: #1c1917; font-size: 20px; padding: 14px 26px; }
+  #ctrl button.danger { background: #b91c1c; }
+  #empty { position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%); font-size: clamp(18px, 2vw, 32px); opacity: .6; }
+  #judgeBanner { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%); font-size: clamp(24px, 3vw, 52px);
+    font-weight: 900; color: #facc15; text-shadow: 0 4px 20px rgba(0,0,0,.7); white-space: nowrap; }
+  #results { position: absolute; right: 16px; top: 16px; width: min(460px, 38vw); max-height: calc(100% - 100px); overflow: auto;
+    background: rgba(15,23,42,.92); border-radius: 18px; padding: 16px; }
+  #results h2 { margin: 0 0 10px; font-size: clamp(18px, 1.8vw, 30px); }
+  #results ol { list-style: none; margin: 0; padding: 0; }
+  #results li { display: grid; grid-template-columns: 44px 52px 1fr auto; gap: 10px; align-items: center;
+    padding: 8px; border-radius: 12px; background: #1e293b; margin-bottom: 6px; animation: pop .45s ease-out; }
+  #results li.first { background: #854d0e; }
+  #results li img { width: 52px; height: 52px; border-radius: 50%; background: #fff; object-fit: cover; }
+  #results .rk { font-size: 24px; font-weight: 900; text-align: center; }
+  #results .nm { font-weight: 800; font-size: clamp(14px, 1.3vw, 20px); }
+  #results .cm { font-size: clamp(12px, 1vw, 15px); opacity: .85; font-weight: 400; }
+  #results .sc { font-size: clamp(20px, 2vw, 32px); font-weight: 900; color: #facc15; }
+  @keyframes pop { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  #hostErr { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); max-width: 600px; }
+
+  /* 2D 대체 무대 (3D를 못 불러올 때) */
+  #flat { position: absolute; left: 0; right: 0; bottom: 8%; top: 22%; display: flex; flex-wrap: wrap; align-content: flex-end;
+    justify-content: center; gap: 2vw; padding: 0 4vw; }
+  .fchar { position: relative; width: 11vw; min-width: 90px; display: flex; flex-direction: column; align-items: center;
+    animation: bob 2.4s ease-in-out infinite; }
+  .fchar .fhead { width: 100%; aspect-ratio: 1; border-radius: 50%; background: #ffe0bd; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,.4); }
+  .fchar .fhead img { width: 100%; height: 100%; }
+  .fchar .fbody { width: 70%; height: 6vw; min-height: 50px; border-radius: 40% 40% 12px 12px; margin-top: -6%; }
+  .fchar.win { animation: jump .6s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-8px); } }
+  @keyframes jump { 50% { transform: translateY(-30px); } }
+
+  /* ================= 참가자 ================= */
+  #player { max-width: 520px; margin: 0 auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  #player h1 { margin: 0; font-size: 22px; }
+  input[type=text] { font: inherit; font-size: 18px; padding: 12px; border-radius: 10px; border: 0; width: 100%; }
+  .bigBtn { width: 100%; padding: 16px; font-size: 20px; background: #22c55e; color: #052e16; margin-top: 10px; }
+  #padWrap { position: relative; width: 100%; aspect-ratio: 1; border-radius: 16px; overflow: hidden;
+    background: repeating-conic-gradient(#334155 0 25%, #1e293b 0 50%) 0 0 / 24px 24px; touch-action: none; }
+  #padWrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .sw { width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; padding: 0; }
+  .sw.on { border-color: #fff; box-shadow: 0 0 0 2px #38bdf8; }
+  .tbtn { padding: 8px 12px; background: #334155; color: #e2e8f0; font-size: 14px; }
+  .tbtn.on { background: #38bdf8; color: #082f49; }
+  #sendFace { background: #f59e0b; color: #1c1917; }
+  .msgRow { display: flex; gap: 8px; }
+  .msgRow input { flex: 1; }
+  .msgRow button { padding: 0 18px; background: #38bdf8; color: #082f49; }
+  #myScore { text-align: center; font-size: 18px; line-height: 1.5; }
+  #myScore b { font-size: 40px; color: #facc15; }
+  .ok { color: #4ade80; font-size: 14px; min-height: 1.2em; }
+</style>
+</head>
+<body>
+
+<!-- ======================= 진행자 ======================= -->
+<div id="host" hidden>
+  <div id="stage"></div>
+  <div id="flat" hidden></div>
+  <div id="overlay"></div>
+  <div id="hostTitle">내 얼굴 캐릭터 등장!</div>
+  <div id="hostSub">QR을 찍고 얼굴을 그려서 보내 주세요</div>
+  <div id="empty">아직 등장한 캐릭터가 없어요</div>
+  <div id="qrBox" class="card">
+    <div id="qr"></div>
+    <p>QR로 참가</p>
+    <div class="small" id="conn">연결 중…</div>
+    <div class="small" id="pCount"></div>
+  </div>
+  <div id="judgeBanner" hidden></div>
+  <div id="results" hidden>
+    <h2>👑 외모 평가 결과</h2>
+    <ol id="resList"></ol>
+    <div class="small" style="margin-top:8px">※ 그림의 색감·대칭·디테일로 매긴 재미용 점수입니다</div>
+  </div>
+  <div id="ctrl">
+    <button id="judgeBtn" class="go">✨ 외모 평가하기</button>
+    <button id="closeResBtn" hidden>결과 닫기</button>
+    <button id="resetBtn" class="danger">초기화</button>
+  </div>
+  <div id="hostErr" class="notice" hidden></div>
+</div>
+
+<!-- ======================= 참가자 ======================= -->
+<div id="player" hidden>
+  <h1>내 얼굴 캐릭터</h1>
+  <div class="small" id="pConn">연결 중…</div>
+  <div id="errBox" class="notice" hidden></div>
+
+  <div id="joinBox" class="card">
+    <div style="font-weight:800;font-size:18px;margin-bottom:8px">닉네임을 입력하세요</div>
+    <input type="text" id="nickInput" maxlength="10" placeholder="예: 홍길동">
+    <button id="joinBtn" class="bigBtn" disabled>시작하기</button>
+    <div id="joinMsg" class="notice" hidden></div>
+  </div>
+
+  <div id="drawBox" hidden>
+    <div class="card">
+      <div style="font-weight:800;margin-bottom:8px"><span id="meNick"></span> 님, 내 얼굴을 그려 주세요!</div>
+      <div id="padWrap">
+        <canvas id="bgCanvas" width="512" height="512"></canvas>
+        <canvas id="inkCanvas" width="512" height="512"></canvas>
+      </div>
+      <div class="tools" style="margin-top:10px" id="swatches"></div>
+      <div class="tools" style="margin-top:8px">
+        <button class="tbtn" data-size="6">가늘게</button>
+        <button class="tbtn on" data-size="14">보통</button>
+        <button class="tbtn" data-size="30">굵게</button>
+        <button class="tbtn" id="eraserBtn">지우개</button>
+        <button class="tbtn" id="undoBtn">↶ 되돌리기</button>
+        <button class="tbtn" id="clearBtn">전체 지우기</button>
+      </div>
+      <button id="sendFace" class="bigBtn">🚀 프로젝터로 보내기</button>
+      <div class="ok" id="faceOk"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div style="font-weight:800;margin-bottom:8px">💬 말풍선 보내기</div>
+      <div class="msgRow">
+        <input type="text" id="msgInput" maxlength="40" placeholder="얼굴을 먼저 보내면 쓸 수 있어요" disabled>
+        <button id="msgBtn" disabled>보내기</button>
+      </div>
+      <div class="ok" id="msgOk"></div>
+    </div>
+
+    <div class="card" id="scoreCard" style="margin-top:12px" hidden>
+      <div id="myScore"></div>
+    </div>
+    <button id="leaveBtn" class="tbtn" style="margin:12px auto 0;display:block;background:none;text-decoration:underline">나가기</button>
+  </div>
+</div>
+
+<script type="module">
+  const MAX_PLAYERS = 12;
+  const BUBBLE_MS = 12000;
+  const SKIN = "#ffe0bd";
+  const $ = (id) => document.getElementById(id);
+  const isHost = new URLSearchParams(location.search).has("host");
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  function fatal(msg) {
+    $(isHost ? "host" : "player").hidden = false;
+    const box = $(isHost ? "hostErr" : "errBox");
+    box.hidden = false;
+    box.textContent = "⚠ " + msg;
+  }
+  if (typeof FIREBASE_CONFIG === "undefined" || !FIREBASE_CONFIG) { fatal("Firebase 설정값(FIREBASE_CONFIG)이 없습니다."); throw new Error("no config"); }
+  if (!window.firebase) { fatal("Firebase를 불러오지 못했습니다. 인터넷 연결이나 회사 방화벽을 확인하세요."); throw new Error("no firebase"); }
+
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const fb = firebase.database();
+  const TS = firebase.database.ServerValue.TIMESTAMP;
+
+  let myId = lsGet("facePid");
+  if (!myId) { myId = "f" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); lsSet("facePid", myId); }
+
+  let offset = 0;
+  fb.ref(".info/serverTimeOffset").on("value", (s) => { offset = Number(s.val()) || 0; });
+  const serverNow = () => Date.now() + offset;
+
+  // 공유 데이터
+  let players = {};   // pid -> {nick, img, updatedAt, joinedAt}
+  let msgs = {};      // pid -> {text, at}
+  let judge = null;   // {at, results:[{pid,nick,score,comment}]}
+  let onChange = () => {};
+  fb.ref("face/players").on("value", (s) => { players = s.val() || {}; onChange(); },
+    () => fatal("데이터베이스에 접근할 수 없습니다. Firebase Realtime Database 규칙(테스트 모드)을 확인하세요."));
+  fb.ref("face/msgs").on("value", (s) => { msgs = s.val() || {}; onChange(); });
+  fb.ref("face/judge").on("value", (s) => { judge = s.val() || null; onChange(); });
+
+  function hashStr(s) { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+  const clothesColor = (pid) => `hsl(${hashStr(pid) % 360}, 65%, 52%)`;
+
+  if (isHost) host(); else player();
+
+  // =====================================================================
+  //                               참가자
+  // =====================================================================
+  function player() {
+    $("player").hidden = false;
+    $("nickInput").value = lsGet("faceNick") || "";
+    fb.ref(".info/connected").on("value", (s) => {
+      $("pConn").textContent = s.val() ? "● 연결됨" : "연결 중…";
+      if (s.val()) $("joinBtn").disabled = false;
+    });
+
+    // ---- 참가 ----
+    $("joinBtn").addEventListener("click", async () => {
+      const nick = $("nickInput").value.trim().slice(0, 10);
+      const msg = $("joinMsg"); msg.hidden = true;
+      const fail = (t) => { msg.hidden = false; msg.textContent = t; };
+      if (!nick) return fail("닉네임을 입력해 주세요.");
+      const others = Object.entries(players).filter(([pid]) => pid !== myId);
+      if (others.length >= MAX_PLAYERS) return fail(`참가 인원(${MAX_PLAYERS}명)이 모두 찼습니다.`);
+      if (others.some(([, p]) => p.nick === nick)) return fail("같은 닉네임이 있어요. 다른 닉네임을 써 주세요.");
+      lsSet("faceNick", nick);
+      $("joinBtn").disabled = true;
+      try { await fb.ref("face/players/" + myId).update({ nick, joinedAt: TS }); }
+      catch (e) { fail("참가하지 못했습니다. 연결을 확인해 주세요."); }
+      $("joinBtn").disabled = false;
+    });
+    $("leaveBtn").addEventListener("click", () => {
+      fb.ref("face/players/" + myId).remove();
+      fb.ref("face/msgs/" + myId).remove();
+    });
+
+    // ---- 그림판 ----
+    const bg = $("bgCanvas").getContext("2d");
+    const inkC = $("inkCanvas");
+    const ink = inkC.getContext("2d");
+    function drawBg(ctx) {
+      ctx.save();
+      ctx.fillStyle = SKIN;
+      ctx.beginPath(); ctx.ellipse(256, 270, 190, 220, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    drawBg(bg);
+    // 안내선 (보내는 그림에는 들어가지 않음)
+    bg.save(); bg.strokeStyle = "rgba(0,0,0,.08)"; bg.setLineDash([8, 10]); bg.lineWidth = 3;
+    bg.beginPath(); bg.moveTo(256, 60); bg.lineTo(256, 490); bg.moveTo(80, 230); bg.lineTo(432, 230); bg.stroke(); bg.restore();
+
+    const COLORS = ["#111827", "#ffffff", "#ef4444", "#f97316", "#facc15", "#22c55e", "#3b82f6", "#a855f7", "#ec4899", "#8b5a2b"];
+    let color = COLORS[0], size = 14, erasing = false;
+    const strokes = []; let cur = null;
+    COLORS.forEach((c, i) => {
+      const b = document.createElement("button");
+      b.className = "sw" + (i === 0 ? " on" : "");
+      b.style.background = c;
+      if (c === "#ffffff") b.style.boxShadow = "inset 0 0 0 1px #94a3b8";
+      b.addEventListener("click", () => {
+        color = c; erasing = false; $("eraserBtn").classList.remove("on");
+        document.querySelectorAll(".sw").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+      });
+      $("swatches").appendChild(b);
+    });
+    document.querySelectorAll("[data-size]").forEach((b) => b.addEventListener("click", () => {
+      size = Number(b.dataset.size);
+      document.querySelectorAll("[data-size]").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+    }));
+    $("eraserBtn").addEventListener("click", () => { erasing = !erasing; $("eraserBtn").classList.toggle("on", erasing); });
+
+    function paintStroke(s) {
+      ink.save();
+      ink.globalCompositeOperation = s.erase ? "destination-out" : "source-over";
+      ink.strokeStyle = s.color; ink.fillStyle = s.color;
+      ink.lineWidth = s.size; ink.lineCap = "round"; ink.lineJoin = "round";
+      const p = s.pts;
+      if (p.length === 1) { ink.beginPath(); ink.arc(p[0][0], p[0][1], s.size / 2, 0, Math.PI * 2); ink.fill(); }
+      else {
+        ink.beginPath(); ink.moveTo(p[0][0], p[0][1]);
+        for (let i = 1; i < p.length; i++) ink.lineTo(p[i][0], p[i][1]);
+        ink.stroke();
+      }
+      ink.restore();
+    }
+    function redraw() { ink.clearRect(0, 0, 512, 512); strokes.forEach(paintStroke); }
+    function pos(e) {
+      const r = inkC.getBoundingClientRect();
+      return [(e.clientX - r.left) * 512 / r.width, (e.clientY - r.top) * 512 / r.height];
+    }
+    inkC.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); inkC.setPointerCapture(e.pointerId);
+      cur = { color, size: erasing ? size * 1.6 : size, erase: erasing, pts: [pos(e)] };
+      strokes.push(cur); paintStroke(cur);
+    });
+    inkC.addEventListener("pointermove", (e) => {
+      if (!cur) return;
+      e.preventDefault();
+      cur.pts.push(pos(e));
+      redraw();
+    });
+    const end = () => { cur = null; };
+    inkC.addEventListener("pointerup", end); inkC.addEventListener("pointercancel", end);
+    $("undoBtn").addEventListener("click", () => { strokes.pop(); redraw(); });
+    let clearConfirm = 0;
+    $("clearBtn").addEventListener("click", () => {
+      if (!clearConfirm) { $("clearBtn").textContent = "정말 지울까요?"; clearConfirm = setTimeout(() => { clearConfirm = 0; $("clearBtn").textContent = "전체 지우기"; }, 2500); return; }
+      clearTimeout(clearConfirm); clearConfirm = 0; $("clearBtn").textContent = "전체 지우기";
+      strokes.length = 0; redraw();
+    });
+
+    function exportFace() {
+      const c = document.createElement("canvas"); c.width = c.height = 256;
+      const x = c.getContext("2d");
+      x.scale(0.5, 0.5);
+      drawBg(x);
+      x.drawImage(inkC, 0, 0);
+      return c.toDataURL("image/png");
+    }
+    $("sendFace").addEventListener("click", async () => {
+      if (!strokes.length) { $("faceOk").textContent = "먼저 얼굴을 그려 주세요 ✏️"; return; }
+      $("sendFace").disabled = true;
+      try {
+        await fb.ref("face/players/" + myId).update({ img: exportFace(), updatedAt: TS });
+        $("faceOk").textContent = "✔ 프로젝터에 등장했어요! 다시 그려서 보내면 바뀌어요.";
+      } catch (e) { $("faceOk").textContent = "보내지 못했어요. 다시 시도해 주세요."; }
+      $("sendFace").disabled = false;
+    });
+
+    // ---- 말풍선 ----
+    async function sendMsg() {
+      const text = $("msgInput").value.trim().slice(0, 40);
+      if (!text) return;
+      $("msgBtn").disabled = true;
+      try {
+        await fb.ref("face/msgs/" + myId).set({ text, at: TS });
+        $("msgInput").value = "";
+        $("msgOk").textContent = "✔ 말풍선이 떴어요!";
+        setTimeout(() => { $("msgOk").textContent = ""; }, 3000);
+      } catch (e) { $("msgOk").textContent = "보내지 못했어요."; }
+      $("msgBtn").disabled = false;
+    }
+    $("msgBtn").addEventListener("click", sendMsg);
+    $("msgInput").addEventListener("keydown", (e) => { if (e.key === "Enter") sendMsg(); });
+
+    onChange = () => {
+      const me = players[myId];
+      $("joinBox").hidden = !!me;
+      $("drawBox").hidden = !me;
+      if (!me) return;
+      $("meNick").textContent = me.nick;
+      const hasFace = !!me.img;
+      $("msgInput").disabled = !hasFace;
+      $("msgBtn").disabled = !hasFace;
+      $("msgInput").placeholder = hasFace ? "하고 싶은 말 (40자)" : "얼굴을 먼저 보내면 쓸 수 있어요";
+      const r = judge && Array.isArray(judge.results) ? judge.results.findIndex((x) => x.pid === myId) : -1;
+      $("scoreCard").hidden = r < 0;
+      if (r >= 0) {
+        const res = judge.results[r];
+        const box = $("myScore"); box.textContent = "";
+        const t = document.createElement("div"); t.textContent = `외모 평가 ${r + 1}위 / ${judge.results.length}명`;
+        const s = document.createElement("b"); s.textContent = res.score + "점";
+        const c = document.createElement("div"); c.textContent = res.comment;
+        box.append(t, s, c);
+      }
+    };
+    onChange();
+  }
+
+  // =====================================================================
+  //                               진행자
+  // =====================================================================
+  async function host() {
+    $("host").hidden = false;
+    const joinUrl = location.origin + location.pathname;
+    try { new QRCode($("qr"), { text: joinUrl, width: 150, height: 150, correctLevel: QRCode.CorrectLevel.M }); }
+    catch (e) { $("qr").textContent = "QR 오류"; }
+    fb.ref(".info/connected").on("value", (s) => { $("conn").textContent = s.val() ? "● 실시간 연결됨" : "연결 중…"; });
+
+    // ---------- 무대 (3D, 실패하면 2D) ----------
+    let stage = null;
+    try {
+      const THREE = await import("https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js");
+      stage = make3DStage(THREE);
+    } catch (e) {
+      console.warn("3D 무대를 불러오지 못해 2D로 표시합니다", e);
+      stage = make2DStage();
+    }
+
+    // ---------- 라벨·말풍선 오버레이 ----------
+    const tags = {}; // pid -> {tag, bubble}
+    function syncOverlay() {
+      const ov = $("overlay");
+      const ids = visibleIds();
+      Object.keys(tags).forEach((pid) => {
+        if (!ids.includes(pid)) { tags[pid].tag.remove(); tags[pid].bubble.remove(); delete tags[pid]; }
+      });
+      ids.forEach((pid) => {
+        if (!tags[pid]) {
+          const tag = document.createElement("div"); tag.className = "tag";
+          const bubble = document.createElement("div"); bubble.className = "bubble"; bubble.style.opacity = "0";
+          ov.append(tag, bubble);
+          tags[pid] = { tag, bubble, text: null };
+        }
+        const t = tags[pid];
+        t.tag.textContent = String(players[pid].nick || "").slice(0, 10);
+        const sc = scoreOf(pid);
+        if (sc !== null && judgeRevealed) {
+          const s = document.createElement("span"); s.className = "score"; s.textContent = sc + "점";
+          t.tag.appendChild(s);
+        }
+      });
+    }
+    function placeOverlay() {
+      const now = serverNow();
+      for (const pid in tags) {
+        const p = stage.screenPos(pid);
+        const t = tags[pid];
+        if (!p) continue;
+        t.tag.style.left = p.foot.x + "px"; t.tag.style.top = p.foot.y + "px";
+        t.bubble.style.left = p.head.x + "px"; t.bubble.style.top = p.head.y + "px";
+        const m = msgs[pid];
+        const show = m && m.text && typeof m.at === "number" && now - m.at < BUBBLE_MS && now - m.at > -5000;
+        if (show && t.text !== m.text + m.at) { t.bubble.textContent = m.text; t.text = m.text + m.at; }
+        t.bubble.style.opacity = show ? "1" : "0";
+      }
+      requestAnimationFrame(placeOverlay);
+    }
+    requestAnimationFrame(placeOverlay);
+
+    const visibleIds = () => Object.keys(players).filter((pid) => players[pid] && players[pid].img)
+      .sort((a, b) => (players[a].joinedAt || 0) - (players[b].joinedAt || 0));
+
+    // ---------- 외모 평가 (재미용 점수) ----------
+    let judgeRevealed = false, judging = false, lastJudgeAt = null;
+    const scoreOf = (pid) => {
+      if (!judge || !Array.isArray(judge.results)) return null;
+      const r = judge.results.find((x) => x.pid === pid);
+      return r ? r.score : null;
+    };
+
+    function loadImg(src) {
+      return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+    }
+    async function analyze(src, seed) {
+      const N = 128;
+      const c = document.createElement("canvas"); c.width = c.height = N;
+      const x = c.getContext("2d", { willReadFrequently: true });
+      x.drawImage(await loadImg(src), 0, 0, N, N);
+      const d = x.getImageData(0, 0, N, N).data;
+      const isInk = new Uint8Array(N * N);
+      let inkCount = 0, area = 0, edges = 0;
+      const hues = new Array(13).fill(0);
+      for (let i = 0; i < N * N; i++) {
+        const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], a = d[i * 4 + 3];
+        if (a < 40) continue;
+        area++;
+        const dist = Math.abs(r - 255) + Math.abs(g - 224) + Math.abs(b - 189);
+        if (dist > 60) {
+          isInk[i] = 1; inkCount++;
+          const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+          if (mx - mn < 30) hues[12]++;            // 무채색
+          else {
+            let h;
+            if (mx === r) h = ((g - b) / (mx - mn)) % 6; else if (mx === g) h = (b - r) / (mx - mn) + 2; else h = (r - g) / (mx - mn) + 4;
+            hues[Math.floor(((h * 60 + 360) % 360) / 30)]++;
+          }
+        }
+      }
+      let sym = 0, symN = 0;
+      for (let y = 0; y < N; y++) for (let xx = 0; xx < N / 2; xx++) {
+        const a1 = isInk[y * N + xx], a2 = isInk[y * N + (N - 1 - xx)];
+        if (a1 || a2) { symN++; if (a1 === a2) sym++; }
+        if (xx > 0 && isInk[y * N + xx] !== isInk[y * N + xx - 1]) edges++;
+      }
+      const coverage = area ? inkCount / area : 0;
+      const colors = hues.filter((h) => inkCount && h / inkCount > 0.02).length;
+      const symmetry = symN ? sym / symN : 0;
+      const detail = Math.min(1, edges / 900);
+      // 같은 그림이면 같은 점수가 나오도록 고정된 흔들림
+      const jitter = ((hashStr(seed) % 1200) / 100) - 6;
+      let score;
+      if (coverage < 0.01) score = 12 + (hashStr(seed) % 15);
+      else score = 55 + 14 * Math.min(1, coverage / 0.22) + 9 * Math.min(colors, 5) / 5 + 13 * symmetry + 8 * detail + jitter;
+      score = Math.max(1, Math.min(99, Math.round(score)));
+      return { score, coverage, colors, symmetry, detail };
+    }
+    const pick = (arr, seed) => arr[hashStr(seed) % arr.length];
+    function commentFor(m, seed) {
+      if (m.coverage < 0.01) return pick(["얼굴이… 어디 갔죠? 투명인간 인정", "신비주의 전략, 아무것도 안 보여요"], seed);
+      const opts = [];
+      if (m.symmetry > 0.62) opts.push(["완벽한 좌우대칭! 거울도 질투하는 얼굴", "황금비율 인정, 대칭이 미쳤어요"]);
+      if (m.colors >= 4) opts.push(["색감 장인! 패션 피플의 아우라", "얼굴에서 무지개가 뜹니다 🌈"]);
+      if (m.coverage > 0.25) opts.push(["존재감 폭발! 화면을 꽉 채운 얼굴", "이목구비가 꽉 찼어요, 압도적 비주얼"]);
+      if (m.coverage < 0.07) opts.push(["절제미의 극치, 미니멀리즘 장인", "여백의 미를 아는 얼굴"]);
+      if (m.detail > 0.6) opts.push(["디테일 장인! 속눈썹까지 셌어요", "섬세함이 남다른 얼굴"]);
+      if (!opts.length) opts.push(["자연스러운 매력, 볼수록 정감 가요", "개성 만점! 한 번 보면 못 잊어요", "편안한 인상, 호감도 상승 중"]);
+      return pick(pick(opts, seed + "a"), seed + "b");
+    }
+
+    async function runJudge() {
+      const ids = visibleIds();
+      if (!ids.length || judging) return;
+      judging = true;
+      $("judgeBtn").disabled = true;
+      $("results").hidden = true;
+      judgeRevealed = false;
+      const round = Date.now();
+      const results = [];
+      for (const pid of ids) {
+        const p = players[pid];
+        const seed = pid + ":" + (p.updatedAt || 0);
+        try {
+          const m = await analyze(p.img, seed);
+          results.push({ pid, nick: String(p.nick || "").slice(0, 10), score: m.score, comment: commentFor(m, seed) });
+        } catch (e) {
+          results.push({ pid, nick: String(p.nick || "").slice(0, 10), score: 50, comment: "그림을 읽지 못했어요" });
+        }
+      }
+      results.sort((a, b) => b.score - a.score);
+      // 심사 연출
+      const banner = $("judgeBanner"); banner.hidden = false;
+      const lines = ["심사위원 봇이 얼굴을 스캔 중…", "이목구비 비율 분석 중…", "색감과 대칭을 계산 중…", "두구두구두구…"];
+      const steps = Math.max(8, ids.length * 2);
+      for (let i = 0; i < steps; i++) {
+        stage.spotlight(ids[i % ids.length]);
+        banner.textContent = lines[Math.floor(i / steps * lines.length)];
+        await new Promise((r) => setTimeout(r, 450));
+      }
+      stage.spotlight(null);
+      banner.hidden = true;
+      await fb.ref("face/judge").set({ at: round, results });
+      judging = false;
+      $("judgeBtn").disabled = false;
+    }
+
+    async function revealResults() {
+      const ol = $("resList"); ol.textContent = "";
+      $("results").hidden = false;
+      $("closeResBtn").hidden = false;
+      const res = judge.results;
+      const n = res.length;
+      // 꼴찌부터 1등까지 한 명씩 공개
+      for (let i = n - 1; i >= 0; i--) {
+        const r = res[i];
+        const li = document.createElement("li");
+        if (i === 0) li.classList.add("first");
+        const rk = document.createElement("div"); rk.className = "rk"; rk.textContent = i === 0 ? "👑" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1);
+        const im = document.createElement("img"); if (players[r.pid] && players[r.pid].img) im.src = players[r.pid].img;
+        const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = r.nick;
+        const cm = document.createElement("div"); cm.className = "cm"; cm.textContent = r.comment; nm.appendChild(cm);
+        const sc = document.createElement("div"); sc.className = "sc"; sc.textContent = r.score;
+        li.append(rk, im, nm, sc);
+        ol.prepend(li);
+        await new Promise((r2) => setTimeout(r2, i === 0 ? 0 : (i <= 2 ? 1300 : 700)));
+      }
+      judgeRevealed = true;
+      stage.setWinner(res[0] && res[0].pid);
+      syncOverlay();
+    }
+
+    $("judgeBtn").addEventListener("click", runJudge);
+    $("closeResBtn").addEventListener("click", async () => {
+      $("results").hidden = true; $("closeResBtn").hidden = true;
+      judgeRevealed = false; stage.setWinner(null);
+      await fb.ref("face/judge").remove();
+    });
+    let resetT = 0;
+    $("resetBtn").addEventListener("click", async () => {
+      const b = $("resetBtn");
+      if (!resetT) { b.textContent = "한 번 더 누르면 초기화"; resetT = setTimeout(() => { resetT = 0; b.textContent = "초기화"; }, 3000); return; }
+      clearTimeout(resetT); resetT = 0; b.textContent = "초기화";
+      await fb.ref("face").remove();
+    });
+
+    onChange = () => {
+      const ids = visibleIds();
+      stage.sync(ids, players);
+      syncOverlay();
+      $("empty").hidden = ids.length > 0;
+      $("pCount").textContent = `참가 ${Object.keys(players).length}/${MAX_PLAYERS}명 · 등장 ${ids.length}명`;
+      $("judgeBtn").disabled = judging || !ids.length;
+      if (judge && judge.at !== lastJudgeAt && Array.isArray(judge.results)) { lastJudgeAt = judge.at; revealResults(); }
+      if (!judge && lastJudgeAt) { lastJudgeAt = null; judgeRevealed = false; $("results").hidden = true; $("closeResBtn").hidden = true; stage.setWinner(null); }
+    };
+    onChange();
+  }
+
+  // =====================================================================
+  //                         3D 무대 (three.js)
+  // =====================================================================
+  function make3DStage(THREE) {
+    const box = $("stage");
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    box.appendChild(renderer.domElement);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x334155, 1.4));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(4, 10, 8); scene.add(sun);
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 64), new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 1 }));
+    floor.rotation.x = -Math.PI / 2; scene.add(floor);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
+    const spot = new THREE.Mesh(new THREE.RingGeometry(0.8, 1.0, 48), ringMat);
+    spot.rotation.x = -Math.PI / 2; spot.position.y = 0.02; spot.visible = false; scene.add(spot);
+    const spotBeam = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 1.0, 8, 32, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0xfff7cc, transparent: true, opacity: 0.15, side: THREE.DoubleSide, depthWrite: false }));
+    spotBeam.visible = false; scene.add(spotBeam);
+
+    const chars = {}; // pid -> {group, head, faceMat, arms, target, vy, phase, imgKey}
+    const loader = new THREE.TextureLoader();
+    let winner = null, spotPid = null;
+    const crown = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.45, 5, 1, true),
+      new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.6, roughness: 0.3, side: THREE.DoubleSide }));
+    crown.visible = false; scene.add(crown);
+
+    function makeChar(pid) {
+      const group = new THREE.Group();
+      const cloth = new THREE.MeshStandardMaterial({ color: new THREE.Color(clothesColor(pid)), roughness: 0.6 });
+      const dark = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.8 });
+      const skin = new THREE.MeshStandardMaterial({ color: new THREE.Color(SKIN), roughness: 0.7 });
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.56, 1.0, 28), cloth); body.position.y = 1.0; group.add(body);
+      const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.42, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), cloth); shoulder.position.y = 1.5; group.add(shoulder);
+      [-0.2, 0.2].forEach((x) => {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.55, 16), dark); leg.position.set(x, 0.28, 0); group.add(leg);
+        const foot = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 10), dark); foot.scale.set(1, 0.6, 1.4); foot.position.set(x, 0.06, 0.06); group.add(foot);
+      });
+      const arms = [-1, 1].map((s) => {
+        const pivot = new THREE.Group(); pivot.position.set(0.5 * s, 1.42, 0);
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 0.72, 12), cloth); arm.position.y = -0.36; pivot.add(arm);
+        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), skin); hand.position.y = -0.76; pivot.add(hand);
+        pivot.rotation.z = 0.25 * s; group.add(pivot);
+        return pivot;
+      });
+      const head = new THREE.Group(); head.position.y = 2.25; group.add(head);
+      head.add(new THREE.Mesh(new THREE.SphereGeometry(0.66, 40, 28), skin));
+      const faceMat = new THREE.MeshStandardMaterial({ transparent: true, alphaTest: 0.05, roughness: 0.75 });
+      // 앞쪽 반구에 그림을 입힘 (phi 0.1π~0.9π, theta 0.12π~0.88π)
+      const face = new THREE.Mesh(new THREE.SphereGeometry(0.665, 40, 28, Math.PI * 0.1, Math.PI * 0.8, Math.PI * 0.12, Math.PI * 0.76), faceMat);
+      head.add(face);
+      const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.7, 32), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3 }));
+      shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.01;
+      scene.add(shadow);
+      group.position.set(0, 9, 0);
+      scene.add(group);
+      return { group, head, faceMat, arms, shadow, target: new THREE.Vector3(), vy: 0, phase: Math.random() * 6, imgKey: null, landed: false };
+    }
+
+    let layoutRows = 1;
+    function layout(ids) {
+      const perRow = ids.length <= 7 ? 7 : 6;
+      layoutRows = Math.max(1, Math.ceil(ids.length / perRow));
+      ids.forEach((pid, i) => {
+        const row = Math.floor(i / perRow);
+        const inRow = Math.min(perRow, ids.length - row * perRow);
+        const col = i % perRow;
+        const gap = 2.1;
+        chars[pid].target.set((col - (inRow - 1) / 2) * gap + (row % 2) * 0.5, 0, -row * 2.6);
+      });
+    }
+
+    function sync(ids, players) {
+      Object.keys(chars).forEach((pid) => {
+        if (!ids.includes(pid)) { scene.remove(chars[pid].group); scene.remove(chars[pid].shadow); delete chars[pid]; }
+      });
+      ids.forEach((pid) => {
+        if (!chars[pid]) chars[pid] = makeChar(pid);
+        const c = chars[pid];
+        const key = players[pid].updatedAt + ":" + (players[pid].img || "").length;
+        if (c.imgKey !== key && players[pid].img) {
+          c.imgKey = key;
+          loader.load(players[pid].img, (tex) => {
+            tex.colorSpace = THREE.SRGBColorSpace;
+            if (c.faceMat.map) c.faceMat.map.dispose();
+            c.faceMat.map = tex; c.faceMat.needsUpdate = true;
+          });
+          if (c.landed) { c.vy = 0.12; } // 얼굴이 바뀌면 깡총
+        }
+      });
+      layout(ids);
+    }
+
+    function resize() {
+      const w = box.clientWidth, h = box.clientHeight;
+      renderer.setSize(w, h);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+    window.addEventListener("resize", resize); resize();
+
+    const tmp = new THREE.Vector3();
+    function project(v) {
+      tmp.copy(v).project(camera);
+      return { x: (tmp.x + 1) / 2 * box.clientWidth, y: (1 - tmp.y) / 2 * box.clientHeight };
+    }
+    function screenPos(pid) {
+      const c = chars[pid]; if (!c) return null;
+      const g = c.group.position;
+      return {
+        head: project(new THREE.Vector3(g.x, g.y + 3.05, g.z)),
+        foot: project(new THREE.Vector3(g.x, g.y - 0.05, g.z + 0.6)),
+      };
+    }
+
+    const clock = new THREE.Clock();
+    function frame() {
+      const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+      const camZ = 10.5 + (layoutRows - 1) * 2.6, camY = 3.4 + (layoutRows - 1) * 1.2;
+      const n = Object.keys(chars).length;
+      const widen = n > 5 ? (n - 5) * 0.6 : 0;
+      camera.position.lerp(tmp.set(0, camY + widen * 0.3, camZ + widen), 0.05);
+      camera.lookAt(0, 1.6, -(layoutRows - 1) * 1.3);
+      for (const pid in chars) {
+        const c = chars[pid], g = c.group.position;
+        g.x += (c.target.x - g.x) * Math.min(1, dt * 4);
+        g.z += (c.target.z - g.z) * Math.min(1, dt * 4);
+        // 떨어지기 + 통통 튀기
+        c.vy -= 0.6 * dt; g.y += c.vy;
+        if (g.y <= 0) { g.y = 0; c.vy = Math.abs(c.vy) > 0.05 ? -c.vy * 0.45 : 0; c.landed = true; }
+        if (pid === winner && c.landed && g.y === 0) c.vy = 0.11;
+        const bob = Math.sin(t * 2.2 + c.phase);
+        c.head.rotation.z = bob * 0.06;
+        c.head.rotation.y = Math.sin(t * 0.7 + c.phase) * 0.15;
+        c.head.position.y = 2.25 + Math.abs(bob) * 0.04;
+        c.arms[0].rotation.z = -0.25 - (pid === winner ? 1.9 + bob * 0.4 : bob * 0.15);
+        c.arms[1].rotation.z = 0.25 + (pid === winner ? 1.9 - bob * 0.4 : bob * 0.15);
+        c.shadow.position.set(g.x, 0.01, g.z);
+        const s = 1 - Math.min(0.6, g.y * 0.08); c.shadow.scale.set(s, s, s);
+        const big = pid === spotPid ? 1.12 : 1;
+        c.group.scale.setScalar(c.group.scale.x + (big - c.group.scale.x) * 0.2);
+      }
+      if (spotPid && chars[spotPid]) {
+        const g = chars[spotPid].group.position;
+        spot.visible = spotBeam.visible = true;
+        spot.position.x = g.x; spot.position.z = g.z;
+        spotBeam.position.set(g.x, 4, g.z);
+        spot.rotation.z = t * 2;
+      } else spot.visible = spotBeam.visible = false;
+      if (winner && chars[winner]) {
+        const c = chars[winner];
+        crown.visible = true;
+        c.head.updateMatrixWorld(true);
+        c.head.getWorldPosition(crown.position);
+        crown.position.y += 0.72 * c.group.scale.y;
+        crown.rotation.y = t * 1.5;
+      } else crown.visible = false;
+      renderer.render(scene, camera);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    return {
+      sync, screenPos,
+      spotlight: (pid) => { spotPid = pid; },
+      setWinner: (pid) => { winner = pid || null; },
+    };
+  }
+
+  // =====================================================================
+  //                    2D 대체 무대 (3D를 못 불러올 때)
+  // =====================================================================
+  function make2DStage() {
+    const flat = $("flat"); flat.hidden = false;
+    const els = {};
+    function sync(ids, players) {
+      Object.keys(els).forEach((pid) => { if (!ids.includes(pid)) { els[pid].root.remove(); delete els[pid]; } });
+      ids.forEach((pid) => {
+        if (!els[pid]) {
+          const root = document.createElement("div"); root.className = "fchar";
+          root.style.animationDelay = (-Math.random() * 2) + "s";
+          const head = document.createElement("div"); head.className = "fhead";
+          const img = document.createElement("img"); head.appendChild(img);
+          const body = document.createElement("div"); body.className = "fbody"; body.style.background = clothesColor(pid);
+          root.append(head, body); flat.appendChild(root);
+          els[pid] = { root, img };
+        }
+        if (els[pid].img.src !== players[pid].img) els[pid].img.src = players[pid].img;
+      });
+    }
+    function screenPos(pid) {
+      const e = els[pid]; if (!e) return null;
+      const r = e.root.getBoundingClientRect();
+      return { head: { x: r.left + r.width / 2, y: r.top - 8 }, foot: { x: r.left + r.width / 2, y: r.bottom + 4 } };
+    }
+    return {
+      sync, screenPos,
+      spotlight: (pid) => { for (const k in els) els[k].root.style.filter = pid && k !== pid ? "brightness(.4)" : ""; },
+      setWinner: (pid) => { for (const k in els) els[k].root.classList.toggle("win", k === pid); },
+    };
+  }
+</script>
+</body>
+</html>
