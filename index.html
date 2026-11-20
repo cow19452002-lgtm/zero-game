@@ -2,26 +2,13 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>0.00초 맞추기</title>
 <!--
-  ======================================================================
-  0.00초 맞추기 — 현장 이벤트용 (최대 7명)
-
-  [모드 1] 기기 한 대로 돌아가며 하기
-    - 아래 FIREBASE_CONFIG를 비워 두면(null) 이 모드로 동작합니다.
-    - 파일을 더블클릭해서 브라우저로 열기만 하면 됩니다.
-
-  [모드 2] 각자 휴대폰으로 QR 찍고 참가 (실시간 순위)
-    1) https://console.firebase.google.com 에서 프로젝트 생성
-    2) 빌드 > Realtime Database > 데이터베이스 만들기 > "테스트 모드로 시작"
-    3) 프로젝트 설정 > 내 앱 > 웹 앱(</>) 추가 > 표시되는 firebaseConfig를
-       아래 FIREBASE_CONFIG 자리에 붙여넣기 (databaseURL 줄이 꼭 있어야 함)
-    4) 이 파일을 GitHub Pages / Netlify 등에 올려서 https 주소를 받기
-    5) 진행자: 주소 끝에 ?host 를 붙여 열기  → QR·순위표·진행 버튼
-       참가자: QR을 찍어서 접속
-    ※ 테스트 모드 DB는 주소를 아는 누구나 쓸 수 있으니 행사 후 삭제하세요.
-  ======================================================================
+  0.00초 맞추기 — 프로젝터 공동 카운트 버전 (최대 7명)
+  - 진행자(프로젝터): 주소 끝에 ?host 를 붙여 열기 → QR, 큰 카운트, 결과
+  - 참가자(휴대폰): QR로 접속 → 닉네임 입력 → 프로젝터를 보며 STOP
+  ※ Firebase 테스트 모드 DB는 행사 후 삭제하세요.
 -->
 <script>
   const FIREBASE_CONFIG = {
@@ -33,15 +20,6 @@
     messagingSenderId: "42120447539",
     appId: "1:42120447539:web:cb19dea02a0f2073044546"
   };
-  /* 예시:
-  const FIREBASE_CONFIG = {
-    apiKey: "....",
-    authDomain: "....firebaseapp.com",
-    databaseURL: "https://....firebasedatabase.app",
-    projectId: "....",
-    appId: "...."
-  };
-  */
 </script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -49,492 +27,510 @@
 <style>
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; }
   body {
-    margin: 0; min-height: 100vh; padding: 16px;
     font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif;
     background: #0f172a; color: #e2e8f0;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
   }
-  .wrap { max-width: 1100px; margin: 0 auto; }
-  header { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  h1 { margin: 0; font-size: 24px; }
-  #conn { font-size: 13px; opacity: .75; }
-  button { font: inherit; font-weight: 700; border: 0; border-radius: 12px; cursor: pointer; touch-action: manipulation; }
+  button { font: inherit; font-weight: 800; border: 0; border-radius: 14px; cursor: pointer; touch-action: manipulation; }
   button:disabled { opacity: .35; cursor: default; }
-  .card { background: #1e293b; border-radius: 16px; padding: 18px; }
-  .center { text-align: center; }
-  .notice { background: #334155; border-radius: 10px; padding: 10px 12px; font-size: 14px; line-height: 1.5; margin: 10px 0; }
-  .notice.warn { background: #7c2d12; }
-
-  .hostGrid { display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
-  @media (max-width: 800px) { .hostGrid { grid-template-columns: 1fr; } }
-  #qr { background: #fff; padding: 14px; border-radius: 12px; display: inline-block; }
-  #qr img, #qr canvas { display: block; width: 260px; height: 260px; }
-  .url { font-size: 12px; opacity: .6; word-break: break-all; margin-top: 8px; }
-  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px; }
-  .controls button { padding: 12px 18px; font-size: 16px; background: #475569; color: #fff; }
-  .controls button.primary { background: #22c55e; color: #052e16; }
-  .controls button.danger { background: #ef4444; }
-  .controls label { font-size: 14px; display: inline-flex; gap: 6px; align-items: center; }
   select { font: inherit; padding: 8px; border-radius: 8px; border: 0; }
-  .statusBig { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .card { background: #1e293b; border-radius: 18px; padding: 18px; }
+  .notice { background: #7c2d12; color: #fff; border-radius: 10px; padding: 12px; font-size: 16px; line-height: 1.5; margin: 10px 0; }
+  #conn { font-size: 13px; opacity: .7; }
 
-  .board h2 { margin: 0 0 10px; font-size: 20px; }
-  .board ol { list-style: none; margin: 0; padding: 0; }
-  .board li {
-    display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center;
-    padding: 10px 12px; border-radius: 10px; background: #0f172a; margin-bottom: 6px;
+  /* ===== 진행자(프로젝터) ===== */
+  #host { display: grid; grid-template-columns: 300px 1fr; gap: 18px; height: 100vh; padding: 18px; }
+  #host .side { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  #qr { background: #fff; padding: 12px; border-radius: 12px; display: inline-block; }
+  #qr img, #qr canvas { display: block; width: 230px; height: 230px; }
+  .qrCard { text-align: center; }
+  .qrCard p { margin: 10px 0 0; font-size: 18px; font-weight: 800; }
+  .players h3 { margin: 0 0 8px; font-size: 18px; }
+  .players ul { list-style: none; margin: 0; padding: 0; }
+  .players li { padding: 8px 10px; border-radius: 8px; background: #0f172a; margin-bottom: 6px; font-size: 18px; font-weight: 700;
+    display: flex; justify-content: space-between; gap: 8px; }
+  .players li .tag { font-size: 13px; opacity: .7; font-weight: 400; }
+  .players li.done .tag { color: #4ade80; opacity: 1; }
+  .main { display: flex; flex-direction: column; min-height: 0; }
+  .stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 0; }
+  #bigLabel { font-size: 3vw; font-weight: 700; opacity: .8; min-height: 1.3em; }
+  #bigNum { font-size: 22vw; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  #bigNum.secret { color: #475569; }
+  #bigNum.danger { color: #f87171; }
+  #pressCount { font-size: 2.2vw; margin-top: 10px; opacity: .85; min-height: 1.3em; }
+  #results { width: 100%; max-width: 1000px; }
+  #results h2 { margin: 0 0 10px; font-size: 2.4vw; }
+  #results ol { list-style: none; margin: 0; padding: 0; }
+  #results li { display: grid; grid-template-columns: 70px 1fr 200px 200px; align-items: center; gap: 10px;
+    padding: 10px 16px; border-radius: 12px; background: #1e293b; margin-bottom: 8px; font-size: 2vw; font-weight: 800; }
+  #results li .stopAt, #results li .diff { text-align: right; font-variant-numeric: tabular-nums; }
+  #results li .stopAt { opacity: .7; font-weight: 600; }
+  #results li.miss { opacity: .5; }
+  #results li:first-child:not(.miss) { background: #854d0e; }
+  .hostCtrl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; padding: 12px; }
+  .hostCtrl button { padding: 14px 22px; font-size: 18px; background: #475569; color: #fff; }
+  .hostCtrl button.go { background: #22c55e; color: #052e16; font-size: 22px; padding: 16px 34px; }
+  .hostCtrl button.danger { background: #b91c1c; }
+  .hostCtrl label { display: inline-flex; gap: 6px; align-items: center; font-size: 15px; }
+  @media (max-width: 900px) {
+    #host { grid-template-columns: 1fr; height: auto; }
+    #bigNum { font-size: 30vw; } #bigLabel { font-size: 6vw; }
+    #results li { font-size: 4vw; grid-template-columns: 40px 1fr 90px 110px; }
   }
-  .board li.me { outline: 2px solid #38bdf8; }
-  .board .rank { font-weight: 800; font-size: 20px; text-align: center; }
-  .board .nick { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .board .sub { font-size: 12px; opacity: .6; font-weight: 400; }
-  .board .ms { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 20px; }
-  .board.big li { padding: 14px 16px; }
-  .board.big .nick, .board.big .ms { font-size: 26px; }
-  .board.big .rank { font-size: 28px; }
-  .empty { opacity: .6; padding: 10px 0; }
 
-  .playGrid { display: grid; gap: 16px; max-width: 560px; margin: 0 auto; }
-  .local .playGrid { max-width: 1000px; grid-template-columns: 1fr 1fr; }
-  @media (max-width: 800px) { .local .playGrid { grid-template-columns: 1fr; } }
-  input[type=text] { font: inherit; font-size: 20px; padding: 12px; border-radius: 10px; border: 0; width: 100%; margin: 10px 0; }
-  .bigBtn { font-size: 20px; padding: 16px 32px; }
-  #joinBtn, #startBtn { background: #22c55e; color: #052e16; }
-  #stopBtn { background: #ef4444; color: #fff; }
-  #display { font-size: min(24vw, 120px); font-weight: 800; margin: 8px 0; font-variant-numeric: tabular-nums; }
-  #display.hidden { visibility: hidden; }
-  .btnRow { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-  #result { font-size: 18px; min-height: 60px; line-height: 1.6; margin-top: 12px; }
-  .meta { font-size: 15px; opacity: .8; }
-  .link { background: none; color: #7dd3fc; font-weight: 400; text-decoration: underline; padding: 6px; font-size: 14px; }
-  #localControls { display: none; }
-  .local #localControls { display: flex; }
+  /* ===== 참가자(휴대폰) ===== */
+  #player { min-height: 100vh; display: flex; flex-direction: column; padding: 16px; gap: 14px; }
+  #player h1 { margin: 0; font-size: 22px; }
+  #joinBox input { font: inherit; font-size: 20px; padding: 14px; border-radius: 12px; border: 0; width: 100%; margin: 12px 0; user-select: text; -webkit-user-select: text; }
+  #joinBtn { width: 100%; padding: 18px; font-size: 22px; background: #22c55e; color: #052e16; }
+  #playBox { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+  #pNick { font-size: 16px; opacity: .8; }
+  #pStatus { font-size: 22px; font-weight: 800; text-align: center; min-height: 2.6em; line-height: 1.3; }
+  #stopBtn {
+    flex: 1; min-height: 50vh; width: 100%; font-size: 64px; border-radius: 28px;
+    background: #334155; color: #94a3b8; transition: transform .05s;
+  }
+  #stopBtn.live { background: #ef4444; color: #fff; box-shadow: 0 0 0 6px rgba(239,68,68,.25); }
+  #stopBtn.live:active { transform: scale(.98); }
+  #stopBtn.pressed { background: #1d4ed8; color: #fff; }
+  #myResult { text-align: center; font-size: 20px; line-height: 1.5; min-height: 3em; }
+  #myResult b { font-size: 34px; }
+  .leave { background: none; color: #7dd3fc; font-weight: 400; text-decoration: underline; font-size: 14px; padding: 6px; align-self: center; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>0.00초 맞추기</h1>
+
+<!-- ===================== 진행자(프로젝터) ===================== -->
+<div id="host" hidden>
+  <div class="side">
+    <div class="card qrCard">
+      <div id="qr"></div>
+      <p>QR을 찍고 참가하세요</p>
       <div id="conn"></div>
     </div>
-  </header>
-
-  <!-- 진행자 화면 (?host) -->
-  <section id="hostView" hidden>
-    <div class="hostGrid">
-      <div class="card center">
-        <div id="qr"></div>
-        <p style="font-size:18px;font-weight:700;margin:12px 0 0">QR을 찍고 참가하세요</p>
-        <div class="url" id="urlText"></div>
-      </div>
-      <div class="card">
-        <div class="statusBig" id="hStatus"></div>
-        <div class="board big">
-          <h2>라운드 <span id="hRound">1</span> 순위 · 참가 <span id="hCount">0</span>/7명</h2>
-          <ol id="hBoard"></ol>
-        </div>
+    <div class="card players">
+      <h3>참가자 <span id="pCount">0</span>/7</h3>
+      <ul id="pList"></ul>
+    </div>
+  </div>
+  <div class="main">
+    <div class="stage">
+      <div id="bigLabel">참가자를 기다리는 중</div>
+      <div id="bigNum">10.00</div>
+      <div id="pressCount"></div>
+      <div id="results" hidden>
+        <h2 id="resTitle">결과</h2>
+        <ol id="resList"></ol>
       </div>
     </div>
-  </section>
+    <div class="card hostCtrl">
+      <button id="startBtn" class="go">▶ 카운트 시작</button>
+      <label>숫자 표시
+        <select id="modeSel">
+          <option value="hide3">남은 3초부터 숨김</option>
+          <option value="blind">처음부터 숨김</option>
+          <option value="visible">끝까지 보임</option>
+        </select>
+      </label>
+      <button id="lobbyBtn">대기 화면으로</button>
+      <button id="resetBtn" class="danger">참가자 초기화</button>
+    </div>
+  </div>
+</div>
 
-  <!-- 진행 버튼 (진행자 화면 / 한 기기 모드 공통) -->
-  <div class="controls card" id="ctrlBox" hidden>
-    <button id="openBtn">접수 마감</button>
-    <label>숫자 표시
-      <select id="modeSel">
-        <option value="hide3">남은 3초부터 숨김</option>
-        <option value="blind">처음부터 숨김</option>
-        <option value="visible">끝까지 보임</option>
-      </select>
-    </label>
-    <label>기회
-      <select id="triesSel">
-        <option value="1">1번</option>
-        <option value="2">2번</option>
-        <option value="3">3번</option>
-        <option value="5">5번</option>
-      </select>
-    </label>
-    <button id="newRoundBtn" class="danger">새 라운드</button>
+<!-- ===================== 참가자(휴대폰) ===================== -->
+<div id="player" hidden>
+  <h1>0.00초 맞추기</h1>
+  <div id="pConn" style="font-size:13px;opacity:.7"></div>
+  <div id="errBox" class="notice" hidden></div>
+
+  <div id="joinBox" class="card">
+    <div style="font-size:18px;font-weight:800">닉네임을 입력하세요</div>
+    <input type="text" id="nickInput" maxlength="10" placeholder="예: 홍길동">
+    <button id="joinBtn" disabled>참가하기</button>
+    <div id="joinMsg" class="notice" hidden></div>
   </div>
 
-  <!-- 참가 화면 -->
-  <section id="playView" style="margin-top:16px">
-    <div class="playGrid">
-      <div>
-        <div id="modeNote" class="notice" hidden></div>
-        <div class="card center" id="joinBox">
-          <div style="font-size:18px;font-weight:700" id="joinTitle">닉네임을 입력하세요</div>
-          <input type="text" id="nickInput" maxlength="12" placeholder="예: 홍길동">
-          <button id="joinBtn" class="bigBtn" disabled>참가하기</button>
-          <div id="joinMsg" class="notice warn" hidden></div>
-        </div>
-        <div class="card center" id="gameBox" hidden>
-          <div class="meta"><b id="meNick"></b> · 남은 기회 <b id="triesLeft"></b></div>
-          <div class="meta" id="rule" style="margin-top:4px"></div>
-          <div id="display">10.00</div>
-          <div class="btnRow">
-            <button id="startBtn" class="bigBtn">START</button>
-            <button id="stopBtn" class="bigBtn" disabled>STOP</button>
-          </div>
-          <div id="result"></div>
-          <div id="gameMsg" class="notice" hidden></div>
-          <button id="nextBtn" class="link" hidden>다음 참가자로 바꾸기</button>
-        </div>
-      </div>
-      <div class="card board" id="pBoardBox">
-        <h2>실시간 순위 <span class="sub" id="pCount"></span></h2>
-        <ol id="pBoard"></ol>
-      </div>
-    </div>
-  </section>
+  <div id="playBox" hidden>
+    <div id="pNick"></div>
+    <div id="pStatus">대기 중</div>
+    <button id="stopBtn" disabled>STOP</button>
+    <div id="myResult"></div>
+    <button id="leaveBtn" class="leave">나가기</button>
+  </div>
 </div>
 
 <script>
 (() => {
   const MAX_PLAYERS = 7;
-  const LIMIT = 10000;   // 10.00초 → 0.00이 목표
-  const OVER = 2000;     // 0.00 이후 2초가 지나면 자동 정지
-  const DEFAULT_STATE = { round: 1, open: true, mode: "hide3", maxTries: 3 };
+  const LIMIT = 10000;   // 10.00 → 0.00
+  const OVER = 2000;     // 0.00 이후 2초까지 STOP 받음
+  const READY = 3000;    // 시작 전 3·2·1
   const $ = (id) => document.getElementById(id);
-
-  if (typeof FIREBASE_CONFIG === "undefined") {
-    const c = $("conn");
-    c.style.cssText = "background:#7c2d12;color:#fff;padding:12px;border-radius:10px;font-size:16px;opacity:1;margin-top:8px";
-    c.textContent = "⚠ Firebase 설정값을 붙여넣은 부분에 형식 오류가 있습니다. 파일 위쪽 FIREBASE_CONFIG 부분을 확인하세요. (import 줄, 'const firebaseConfig =' 줄이 들어가면 안 됩니다)";
-    $("ctrlBox").hidden = true; $("playView").hidden = true;
-    return;
-  }
-  const params = new URLSearchParams(location.search);
-  const isHost = params.has("host");
-  const online = !!(FIREBASE_CONFIG && window.firebase);
-
-  let state = { ...DEFAULT_STATE };
-  let roundScores = {};      // { playerId: entry } — 현재 라운드
-  let myId = null;           // 온라인: 이 기기 id / 한 기기 모드: 현재 참가자 닉네임
-  let fb = null, roundRef = null;
-  let t0 = 0, raf = 0, running = false, saving = false;
+  const isHost = new URLSearchParams(location.search).has("host");
+  const localNow = () => performance.timeOrigin + performance.now();
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
-  // ---------- 저장소 ----------
-  async function saveEntry(id, entry) {
-    if (online) await fb.ref(`zero/scores/${state.round}/${id}`).set(entry);
-    else { roundScores[id] = entry; renderAll(); }
+  function fatal(msg) {
+    const box = isHost ? $("conn") : $("errBox");
+    $(isHost ? "host" : "player").hidden = false;
+    box.hidden = false;
+    box.textContent = "⚠ " + msg;
+    if (isHost) box.style.cssText = "background:#7c2d12;color:#fff;padding:10px;border-radius:8px;opacity:1;margin-top:8px";
   }
-  async function writeState(patch) {
-    const next = { ...state, ...patch };
-    if (online) await fb.ref("zero/state").set(next);
-    else {
-      if (next.round !== state.round) roundScores = {};
-      state = next;
-      if (myId && !roundScores[myId]) myId = null;
-      renderAll();
-    }
-  }
+  if (typeof FIREBASE_CONFIG === "undefined" || !FIREBASE_CONFIG) { fatal("Firebase 설정값(FIREBASE_CONFIG)이 없습니다."); return; }
+  if (!window.firebase) { fatal("Firebase를 불러오지 못했습니다. 인터넷 연결이나 회사 방화벽을 확인하세요."); return; }
 
-  function entries() {
-    return Object.entries(roundScores)
-      .map(([id, s]) => ({ id, ...s, tries: Array.isArray(s.tries) ? s.tries : [] }))
-      .sort((a, b) => {
-        const ab = typeof a.best === "number" ? a.best : Infinity;
-        const bb = typeof b.best === "number" ? b.best : Infinity;
-        if (ab !== bb) return ab - bb;
-        return (a.bestAt || 0) - (b.bestAt || 0);
-      });
-  }
-  function myEntry() {
-    if (!myId || !roundScores[myId]) return null;
-    const s = roundScores[myId];
-    return { id: myId, ...s, tries: Array.isArray(s.tries) ? s.tries : [] };
-  }
-
-  // ---------- 렌더링 ----------
-  function fmtDiff(d) {
-    if (typeof d !== "number") return "-";
-    if (d === 0) return "0 ms";
-    return (d > 0 ? "+" : "−") + Math.abs(d) + " ms";
-  }
-  function modeText(m) {
-    return m === "blind" ? "숫자가 처음부터 숨겨집니다"
-      : m === "visible" ? "숫자가 끝까지 보입니다"
-      : "남은 3초부터 숫자가 숨겨집니다";
-  }
-
-  function renderBoard(olId) {
-    const ol = $(olId);
-    ol.textContent = "";
-    const list = entries();
-    if (!list.length) {
-      const d = document.createElement("div");
-      d.className = "empty"; d.textContent = "아직 참가자가 없습니다.";
-      ol.appendChild(d); return;
-    }
-    let rank = 0;
-    list.forEach((s) => {
-      const li = document.createElement("li");
-      if (s.id === myId && !isHost) li.classList.add("me");
-      const r = document.createElement("div");
-      r.className = "rank";
-      if (typeof s.best === "number") {
-        rank++;
-        r.textContent = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank;
-      } else r.textContent = "·";
-      const n = document.createElement("div");
-      n.className = "nick";
-      n.textContent = String(s.nick || "참가자").slice(0, 12);
-      const sub = document.createElement("div");
-      sub.className = "sub";
-      sub.textContent = `${s.tries.length}/${state.maxTries}회 시도`;
-      n.appendChild(sub);
-      const ms = document.createElement("div");
-      ms.className = "ms";
-      ms.textContent = typeof s.best === "number" ? fmtDiff(s.bestDiff) : "대기 중";
-      li.append(r, n, ms);
-      ol.appendChild(li);
-    });
-  }
-
-  function renderAll() {
-    const count = entries().length;
-    $("hRound").textContent = state.round;
-    $("hCount").textContent = count;
-    $("hStatus").textContent = state.open
-      ? `● 진행 중 · 기회 ${state.maxTries}번 · ${modeText(state.mode)}`
-      : "■ 마감됨 · 더 이상 플레이할 수 없습니다";
-    $("openBtn").textContent = state.open ? "접수 마감" : "다시 열기";
-    $("openBtn").className = state.open ? "" : "primary";
-    $("modeSel").value = state.mode;
-    $("triesSel").value = String(state.maxTries);
-    renderBoard("hBoard");
-    renderBoard("pBoard");
-    $("pCount").textContent = `라운드 ${state.round} · ${count}/${MAX_PLAYERS}명`;
-
-    const me = myEntry();
-    if (!running) {
-      $("joinBox").hidden = !!me;
-      $("gameBox").hidden = !me;
-    }
-    if (me) {
-      $("meNick").textContent = me.nick;
-      const left = Math.max(0, state.maxTries - me.tries.length);
-      $("triesLeft").textContent = `${left}/${state.maxTries}`;
-      $("rule").textContent = modeText(state.mode);
-      if (!running) {
-        let text = "";
-        if (!state.open) text = "진행자가 접수를 마감했습니다.";
-        else if (left === 0) text = `모든 기회를 사용했습니다. 최고 기록: ${fmtDiff(me.bestDiff)}`;
-        $("gameMsg").hidden = !text;
-        $("gameMsg").textContent = text;
-        $("startBtn").disabled = saving || !state.open || left === 0;
-        $("startBtn").textContent = me.tries.length ? "다시하기" : "START";
-        $("nextBtn").hidden = online;
-      }
-    }
-  }
-
-  // ---------- 참가 ----------
-  $("joinBtn").addEventListener("click", async () => {
-    const nick = $("nickInput").value.trim().slice(0, 12);
-    const msg = $("joinMsg");
-    msg.hidden = true;
-    const fail = (t) => { msg.hidden = false; msg.textContent = t; };
-    if (!nick) return fail("닉네임을 입력해 주세요.");
-    if (!state.open) return fail("지금은 접수가 마감된 상태입니다.");
-    const list = entries();
-
-    if (!online) {
-      // 한 기기 모드: 같은 닉네임이면 이어서 하기
-      if (!roundScores[nick]) {
-        if (list.length >= MAX_PLAYERS) return fail(`참가 인원(${MAX_PLAYERS}명)이 모두 찼습니다.`);
-        roundScores[nick] = { nick, tries: [], best: null, bestDiff: null, bestAt: null };
-      }
-      myId = nick;
-      resetDisplay();
-      renderAll();
-      return;
-    }
-
-    lsSet("zeroNick", nick);
-    if (list.length >= MAX_PLAYERS) return fail(`참가 인원(${MAX_PLAYERS}명)이 모두 찼습니다.`);
-    if (list.some((s) => s.nick === nick)) return fail("이미 같은 닉네임이 있어요. 다른 닉네임을 써 주세요.");
-    $("joinBtn").disabled = true;
-    try {
-      await saveEntry(myId, { nick, tries: [], best: null, bestDiff: null, bestAt: 0 });
-      resetDisplay();
-    } catch (e) {
-      fail("저장하지 못했습니다. 인터넷 연결을 확인해 주세요.");
-    } finally {
-      $("joinBtn").disabled = false;
-      renderAll();
-    }
-  });
-  $("nickInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("joinBtn").click(); });
-
-  $("nextBtn").addEventListener("click", () => {
-    myId = null;
-    $("nickInput").value = "";
-    $("result").textContent = "";
-    renderAll();
-    $("nickInput").focus();
-  });
-
-  // ---------- 게임 ----------
-  function resetDisplay() {
-    $("display").classList.remove("hidden");
-    $("display").textContent = "10.00";
-    $("result").textContent = "";
-  }
-
-  function loop() {
-    const elapsed = performance.now() - t0;
-    const rem = LIMIT - elapsed;
-    const hide = state.mode === "blind" || (state.mode === "hide3" && rem <= 3000);
-    $("display").classList.toggle("hidden", hide);
-    $("display").textContent = (rem / 1000).toFixed(2);
-    if (elapsed >= LIMIT + OVER) { stop(); return; }
-    raf = requestAnimationFrame(loop);
-  }
-
-  function start() {
-    const me = myEntry();
-    if (running || saving || !me || !state.open) return;
-    if (me.tries.length >= state.maxTries) return;
-    running = true;
-    resetDisplay();
-    $("gameMsg").hidden = true;
-    $("nextBtn").hidden = true;
-    $("startBtn").disabled = true;
-    $("stopBtn").disabled = false;
-    t0 = performance.now();
-    raf = requestAnimationFrame(loop);
-  }
-
-  async function stop() {
-    if (!running) return;
-    const now = performance.now();       // 누른 순간을 가장 먼저 기록
-    running = false;
-    cancelAnimationFrame(raf);
-    $("stopBtn").disabled = true;
-
-    const elapsed = now - t0;
-    const diff = Math.round(elapsed - LIMIT);   // 음수: 빨리, 양수: 늦게
-    const abs = Math.abs(diff);
-    $("display").classList.remove("hidden");
-    $("display").textContent = ((LIMIT - elapsed) / 1000).toFixed(2);
-
-    const grade = abs <= 10 ? "완벽! 🎯" : abs <= 50 ? "아주 좋아요 👍" : abs <= 150 ? "괜찮아요" : "아쉬워요";
-    const side = diff === 0 ? "정확히 맞췄어요!" : diff < 0 ? `${abs} ms 빨랐어요` : `${abs} ms 늦었어요`;
-    $("result").textContent = "";
-    const l1 = document.createElement("div"); l1.textContent = grade;
-    const l2 = document.createElement("div"); l2.textContent = side;
-    $("result").append(l1, l2);
-
-    const me = myEntry();
-    if (!me) { renderAll(); return; }
-    const tries = me.tries.concat([diff]);
-    let { best, bestDiff, bestAt } = me;
-    if (typeof best !== "number" || abs < best) { best = abs; bestDiff = diff; bestAt = Date.now(); }
-
-    saving = true;
-    try {
-      await saveEntry(myId, { nick: me.nick, tries, best, bestDiff, bestAt });
-    } catch (e) {
-      $("gameMsg").hidden = false;
-      $("gameMsg").textContent = "기록을 저장하지 못했습니다. 진행자에게 알려 주세요.";
-    } finally {
-      saving = false;
-      renderAll();
-    }
-  }
-
-  $("startBtn").addEventListener("click", start);
-  $("stopBtn").addEventListener("pointerdown", (e) => { e.preventDefault(); stop(); });
-  document.addEventListener("keydown", (e) => {
-    if (e.code !== "Space" || isHost) return;
-    if (document.activeElement === $("nickInput")) return;
-    e.preventDefault();
-    if (running) stop(); else start();
-  });
-
-  // ---------- 진행 버튼 ----------
-  const safeWrite = (p) => writeState(p).catch(() => { $("conn").textContent = "설정을 저장하지 못했습니다."; });
-  $("openBtn").addEventListener("click", () => safeWrite({ open: !state.open }));
-  $("modeSel").addEventListener("change", (e) => safeWrite({ mode: e.target.value }));
-  $("triesSel").addEventListener("change", (e) => safeWrite({ maxTries: Number(e.target.value) }));
-  let confirmTimer = 0;
-  $("newRoundBtn").addEventListener("click", () => {
-    const b = $("newRoundBtn");
-    if (!confirmTimer) {
-      b.textContent = "한 번 더 누르면 새 라운드";
-      confirmTimer = setTimeout(() => { confirmTimer = 0; b.textContent = "새 라운드"; }, 3000);
-      return;
-    }
-    clearTimeout(confirmTimer); confirmTimer = 0; b.textContent = "새 라운드";
-    if (!online) { myId = null; resetDisplay(); }
-    safeWrite({ round: state.round + 1, open: true });
-  });
-
-  // ---------- 시작 ----------
-  if (!online) {
-    // 한 기기 모드
-    document.body.classList.add("local");
-    $("ctrlBox").hidden = false;
-    $("modeNote").hidden = false;
-    $("modeNote").textContent = FIREBASE_CONFIG && !window.firebase
-      ? "실시간 서버에 연결하지 못해 '기기 한 대' 모드로 실행 중입니다. 참가자들이 이 화면에서 돌아가며 플레이하세요."
-      : "기기 한 대 모드: 참가자들이 이 화면에서 돌아가며 플레이하세요. 기록은 이 화면에만 남습니다.";
-    $("joinTitle").textContent = "참가자 닉네임 (최대 7명)";
-    $("conn").textContent = "기기 한 대 모드";
-    $("joinBtn").disabled = false;
-    renderAll();
-    return;
-  }
-
-  // 온라인 모드
   firebase.initializeApp(FIREBASE_CONFIG);
-  fb = firebase.database();
-  myId = lsGet("zeroPid");
+  const fb = firebase.database();
+
+  let myId = lsGet("zeroPid");
   if (!myId) { myId = "p" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); lsSet("zeroPid", myId); }
-  $("nickInput").value = lsGet("zeroNick") || "";
 
-  if (isHost) {
-    $("hostView").hidden = false;
-    $("ctrlBox").hidden = false;
-    $("playView").hidden = true;
-    const joinUrl = location.origin + location.pathname;
-    $("urlText").textContent = joinUrl;
-    try { new QRCode($("qr"), { text: joinUrl, width: 260, height: 260, correctLevel: QRCode.CorrectLevel.M }); }
-    catch (e) { $("qr").textContent = "QR을 불러오지 못했습니다"; }
-  }
-
-  $("conn").textContent = "연결 중…";
-  fb.ref(".info/connected").on("value", (s) => {
-    $("conn").textContent = s.val() ? "● 실시간 연결됨" : "연결 중… (인터넷 연결을 확인하세요)";
+  // ---------- 서버 시계 맞추기 ----------
+  // 서버 시각과 이 기기 시각의 차이를 여러 번 재서, 왕복 시간이 가장 짧은 값을 씁니다.
+  let offset = 0, offsetRtt = Infinity, synced = false;
+  fb.ref(".info/serverTimeOffset").on("value", (s) => {
+    if (!synced) offset = Number(s.val()) || 0;   // 정밀 측정 전 임시값
   });
+  async function syncClock(samples = 6) {
+    const ref = fb.ref("zero/clock/" + myId);
+    for (let i = 0; i < samples; i++) {
+      try {
+        const t1 = localNow();
+        await ref.set(firebase.database.ServerValue.TIMESTAMP);
+        const t2 = localNow();
+        const ts = (await ref.get()).val();
+        const rtt = t2 - t1;
+        if (typeof ts === "number" && rtt < offsetRtt) {
+          offsetRtt = rtt;
+          offset = ts - (t1 + t2) / 2;
+          synced = true;
+        }
+      } catch (e) {}
+    }
+    ref.remove().catch(() => {});
+  }
+  const serverNow = () => localNow() + offset;
+
+  let onChange = () => {};
+
+  // ---------- 공유 상태 ----------
+  let state = { round: 0, phase: "lobby", startAt: 0, mode: "hide3" };
+  let players = {};   // pid -> {nick, joinedAt}
+  let presses = {};   // pid -> {at, diff}  (현재 라운드)
+  let pressRef = null;
+  const endAt = () => state.startAt + READY + LIMIT;
+
+  function listenPresses() {
+    if (pressRef) pressRef.off();
+    presses = {};
+    pressRef = fb.ref("zero/presses/" + state.round);
+    pressRef.on("value", (s) => { presses = s.val() || {}; onChange(); });
+  }
 
   fb.ref("zero/state").on("value", (snap) => {
     const d = snap.val() || {};
     const prevRound = state.round;
     state = {
-      round: Number(d.round) || 1,
-      open: d.open !== false,
+      round: Number(d.round) || 0,
+      phase: ["lobby", "running", "result"].includes(d.phase) ? d.phase : "lobby",
+      startAt: Number(d.startAt) || 0,
       mode: ["hide3", "blind", "visible"].includes(d.mode) ? d.mode : "hide3",
-      maxTries: Number(d.maxTries) || 3,
     };
-    if (!roundRef || prevRound !== state.round) {
-      if (roundRef) roundRef.off();
-      roundScores = {};
-      roundRef = fb.ref(`zero/scores/${state.round}`);
-      roundRef.on("value", (s) => { roundScores = s.val() || {}; renderAll(); });
+    if (!pressRef || prevRound !== state.round) listenPresses();
+    if (isHost) $("modeSel").value = state.mode;
+    onChange();
+  }, () => fatal("데이터베이스에 접근할 수 없습니다. Firebase Realtime Database 규칙(테스트 모드)을 확인하세요."));
+
+  fb.ref("zero/players").on("value", (s) => { players = s.val() || {}; onChange(); });
+
+  function ranking() {
+    const list = Object.entries(players).map(([pid, p]) => {
+      const pr = presses[pid];
+      return { pid, nick: String(p.nick || "참가자").slice(0, 10), diff: pr && typeof pr.diff === "number" ? pr.diff : null };
+    });
+    list.sort((a, b) => {
+      if (a.diff === null && b.diff === null) return 0;
+      if (a.diff === null) return 1;
+      if (b.diff === null) return -1;
+      return Math.abs(a.diff) - Math.abs(b.diff);
+    });
+    return list;
+  }
+  function fmtDiff(d) {
+    if (d === null) return "미입력";
+    if (d === 0) return "0 ms";
+    return (d > 0 ? "+" : "−") + Math.abs(d) + " ms";
+  }
+  function stopAtText(d) {   // 멈춘 순간 화면에 보였어야 할 숫자
+    if (d === null) return "";
+    return (-d / 1000).toFixed(2);
+  }
+
+
+  // =========================================================
+  //                        진행자 화면
+  // =========================================================
+  if (isHost) {
+    $("host").hidden = false;
+    const joinUrl = location.origin + location.pathname;
+    try { new QRCode($("qr"), { text: joinUrl, width: 230, height: 230, correctLevel: QRCode.CorrectLevel.M }); }
+    catch (e) { $("qr").textContent = "QR 오류"; }
+
+    fb.ref(".info/connected").on("value", (s) => {
+      $("conn").textContent = s.val() ? "● 실시간 연결됨" : "연결 중…";
+    });
+    syncClock(8);
+
+    function renderPlayers() {
+      const ul = $("pList");
+      ul.textContent = "";
+      const ids = Object.keys(players).sort((a, b) => (players[a].joinedAt || 0) - (players[b].joinedAt || 0));
+      $("pCount").textContent = ids.length;
+      ids.forEach((pid) => {
+        const li = document.createElement("li");
+        const n = document.createElement("span");
+        n.textContent = String(players[pid].nick || "참가자").slice(0, 10);
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        if (state.phase === "running" && presses[pid]) { li.classList.add("done"); tag.textContent = "✔ STOP"; }
+        else tag.textContent = state.phase === "running" ? "…" : "";
+        li.append(n, tag);
+        ul.appendChild(li);
+      });
+      if (!ids.length) {
+        const li = document.createElement("li");
+        li.style.opacity = ".6"; li.textContent = "아직 없음";
+        ul.appendChild(li);
+      }
     }
-    $("joinBtn").disabled = false;
-    renderAll();
-  }, () => {
-    $("conn").textContent = "데이터베이스에 접근할 수 없습니다. Firebase 규칙(테스트 모드)을 확인하세요.";
+
+    function renderResults() {
+      const ol = $("resList");
+      ol.textContent = "";
+      $("resTitle").textContent = `${state.round}판 결과`;
+      let rank = 0;
+      ranking().forEach((r) => {
+        const li = document.createElement("li");
+        if (r.diff === null) li.classList.add("miss"); else rank++;
+        const a = document.createElement("span");
+        a.textContent = r.diff === null ? "-" : rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank + "위";
+        const b = document.createElement("span"); b.textContent = r.nick;
+        const c = document.createElement("span"); c.className = "stopAt"; c.textContent = stopAtText(r.diff);
+        const d = document.createElement("span"); d.className = "diff"; d.textContent = fmtDiff(r.diff);
+        li.append(a, b, c, d);
+        ol.appendChild(li);
+      });
+    }
+
+    onChange = () => {
+      renderPlayers();
+      const showRes = state.phase === "result";
+      $("results").hidden = !showRes;
+      $("bigNum").hidden = showRes;
+      $("pressCount").hidden = showRes;
+      if (showRes) { $("bigLabel").textContent = ""; renderResults(); }
+      if (state.phase !== "running") {
+        $("bigNum").className = "";
+        if (state.phase === "lobby") {
+          $("bigLabel").textContent = Object.keys(players).length ? "준비되면 ‘카운트 시작’을 누르세요" : "참가자를 기다리는 중";
+          $("bigNum").textContent = "10.00";
+          $("pressCount").textContent = "";
+        }
+      }
+      $("startBtn").disabled = state.phase === "running" || !Object.keys(players).length;
+      $("startBtn").textContent = state.round ? "▶ 다음 판 시작" : "▶ 카운트 시작";
+      $("resetBtn").disabled = state.phase === "running";
+      $("lobbyBtn").disabled = state.phase === "lobby";
+    };
+
+    let resultWriting = false;
+    function tick() {
+      if (state.phase === "running") {
+        const now = serverNow();
+        const big = $("bigNum");
+        if (now < state.startAt + READY) {
+          const n = Math.ceil((state.startAt + READY - now) / 1000);
+          $("bigLabel").textContent = "준비…";
+          big.textContent = n > 0 ? String(n) : "";
+          big.className = "";
+        } else {
+          const rem = endAt() - now;
+          const hide = state.mode === "blind" || (state.mode === "hide3" && rem <= 3000);
+          if (rem < -OVER) {
+            $("bigLabel").textContent = "집계 중…";
+            big.textContent = "TIME";
+            big.className = "danger";
+            if (!resultWriting && now > endAt() + OVER + 800) {
+              resultWriting = true;
+              fb.ref("zero/state").update({ phase: "result" }).finally(() => { resultWriting = false; });
+            }
+          } else if (hide) {
+            $("bigLabel").textContent = "지금부터 숫자가 숨겨집니다!";
+            big.textContent = "?.??";
+            big.className = "secret";
+          } else {
+            $("bigLabel").textContent = "0.00에 STOP!";
+            big.textContent = (rem / 1000).toFixed(2);
+            big.className = rem <= 3000 ? "danger" : "";
+          }
+        }
+        const done = Object.keys(players).filter((p) => presses[p]).length;
+        $("pressCount").textContent = `STOP 누른 사람 ${done} / ${Object.keys(players).length}`;
+        renderPlayers();
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    $("startBtn").addEventListener("click", async () => {
+      $("startBtn").disabled = true;
+      await fb.ref("zero/state").set({
+        round: state.round + 1,
+        phase: "running",
+        startAt: Math.round(serverNow()),
+        mode: $("modeSel").value,
+      }).catch(() => fatal("시작하지 못했습니다. 연결을 확인하세요."));
+    });
+    $("modeSel").addEventListener("change", (e) => {
+      if (state.phase !== "running") fb.ref("zero/state").update({ mode: e.target.value });
+    });
+    $("lobbyBtn").addEventListener("click", () => fb.ref("zero/state").update({ phase: "lobby" }));
+    let confirmT = 0;
+    $("resetBtn").addEventListener("click", async () => {
+      const b = $("resetBtn");
+      if (!confirmT) {
+        b.textContent = "한 번 더 누르면 초기화";
+        confirmT = setTimeout(() => { confirmT = 0; b.textContent = "참가자 초기화"; }, 3000);
+        return;
+      }
+      clearTimeout(confirmT); confirmT = 0; b.textContent = "참가자 초기화";
+      await fb.ref("zero").update({ players: null, presses: null, clock: null,
+        state: { round: 0, phase: "lobby", startAt: 0, mode: $("modeSel").value } });
+    });
+    return;
+  }
+
+  // =========================================================
+  //                        참가자 화면
+  // =========================================================
+  $("player").hidden = false;
+  $("nickInput").value = lsGet("zeroNick") || "";
+  fb.ref(".info/connected").on("value", (s) => {
+    $("pConn").textContent = s.val() ? "● 연결됨" : "연결 중…";
+    if (s.val()) $("joinBtn").disabled = false;
   });
+  syncClock(6);
+
+  let pressing = false;
+  const joined = () => !!players[myId];
+
+  $("joinBtn").addEventListener("click", async () => {
+    const nick = $("nickInput").value.trim().slice(0, 10);
+    const msg = $("joinMsg");
+    msg.hidden = true;
+    const fail = (t) => { msg.hidden = false; msg.textContent = t; };
+    if (!nick) return fail("닉네임을 입력해 주세요.");
+    const others = Object.entries(players).filter(([pid]) => pid !== myId);
+    if (others.length >= MAX_PLAYERS) return fail(`참가 인원(${MAX_PLAYERS}명)이 모두 찼습니다.`);
+    if (others.some(([, p]) => p.nick === nick)) return fail("같은 닉네임이 있어요. 다른 닉네임을 써 주세요.");
+    lsSet("zeroNick", nick);
+    $("joinBtn").disabled = true;
+    try {
+      await fb.ref("zero/players/" + myId).set({ nick, joinedAt: firebase.database.ServerValue.TIMESTAMP });
+      syncClock(4);
+    } catch (e) { fail("참가하지 못했습니다. 연결을 확인해 주세요."); }
+    $("joinBtn").disabled = false;
+  });
+
+  $("leaveBtn").addEventListener("click", () => fb.ref("zero/players/" + myId).remove());
+
+  function canPress() {
+    if (!joined() || state.phase !== "running" || presses[myId] || pressing) return false;
+    const now = serverNow();
+    return now >= state.startAt + READY && now <= endAt() + OVER;
+  }
+
+  async function press(e) {
+    const t = localNow();               // 누른 순간을 가장 먼저 기록
+    if (e) e.preventDefault();
+    if (!canPress()) return;
+    pressing = true;
+    const at = t + offset;
+    const diff = Math.round(at - endAt());   // 음수: 빨리, 양수: 늦게
+    $("stopBtn").className = "pressed";
+    $("stopBtn").textContent = "✔";
+    try { if (navigator.vibrate) navigator.vibrate(40); } catch (er) {}
+    try {
+      await fb.ref(`zero/presses/${state.round}/${myId}`).set({ at: Math.round(at), diff });
+    } catch (er) {
+      $("pStatus").textContent = "기록 저장 실패! 진행자에게 알려 주세요.";
+    }
+    pressing = false;
+    onChange();
+  }
+  $("stopBtn").addEventListener("pointerdown", press);
+  $("stopBtn").addEventListener("contextmenu", (e) => e.preventDefault());
+
+  onChange = () => {
+    const me = players[myId];
+    $("joinBox").hidden = !!me;
+    $("playBox").hidden = !me;
+    if (!me) return;
+    $("pNick").textContent = `${me.nick} 님 · 프로젝터 화면을 보세요`;
+    const mine = presses[myId];
+    const res = $("myResult");
+    res.textContent = "";
+    if (state.phase === "result") {
+      const list = ranking();
+      const idx = list.filter((r) => r.diff !== null).findIndex((r) => r.pid === myId);
+      $("pStatus").textContent = `${state.round}판 결과`;
+      if (mine) {
+        const l1 = document.createElement("div");
+        const b = document.createElement("b"); b.textContent = fmtDiff(mine.diff);
+        l1.append(b);
+        const l2 = document.createElement("div");
+        l2.textContent = `${idx + 1}위 · 멈춘 시점 ${stopAtText(mine.diff)}`;
+        res.append(l1, l2);
+      } else res.textContent = "이번 판은 STOP을 누르지 않았어요.";
+    } else if (state.phase === "lobby") {
+      $("pStatus").textContent = "대기 중 · 진행자가 곧 시작합니다";
+    }
+  };
+
+  // 버튼 상태는 시계에 따라 바뀌므로 계속 확인
+  function ptick() {
+    const btn = $("stopBtn");
+    if (joined() && !pressing) {
+      const mine = presses[myId];
+      if (state.phase === "running") {
+        const now = serverNow();
+        if (mine) {
+          btn.className = "pressed"; btn.textContent = "✔"; btn.disabled = true;
+          $("pStatus").textContent = "기록 완료! 결과는 프로젝터에서";
+        } else if (now < state.startAt + READY) {
+          btn.className = ""; btn.textContent = "준비"; btn.disabled = true;
+          $("pStatus").textContent = "곧 시작합니다… 프로젝터를 보세요!";
+        } else if (now <= endAt() + OVER) {
+          btn.className = "live"; btn.textContent = "STOP"; btn.disabled = false;
+          $("pStatus").textContent = "0.00에 맞춰 누르세요!";
+        } else {
+          btn.className = ""; btn.textContent = "종료"; btn.disabled = true;
+          $("pStatus").textContent = "시간 초과";
+        }
+      } else {
+        btn.className = ""; btn.disabled = true;
+        btn.textContent = state.phase === "result" && mine ? "✔" : "STOP";
+      }
+    }
+    requestAnimationFrame(ptick);
+  }
+  requestAnimationFrame(ptick);
 })();
 </script>
 </body>
