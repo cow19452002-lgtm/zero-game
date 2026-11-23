@@ -261,6 +261,7 @@
     <div class="small" id="raceMore"></div>
   </div>
   <div id="ctrl">
+    <button id="raceGoBtn" class="candy c-pink" hidden>🏁 출발!</button>
     <button id="raceBtn" class="candy c-mint">🏃 100m 달리기</button>
     <button id="judgeBtn" class="candy c-pink">✨ 외모 평가하기</button>
     <button id="closeResBtn" class="candy c-sky" hidden>결과 닫기</button>
@@ -343,7 +344,7 @@
   const SKIN = "#ffe0bd";
   const RACE_STEPS = 100;       // 맞는 색 1번 = 1m 앞으로, 틀린 색 1번 = 1m 뒤로
   const RACE_LIMIT = 45000;     // 출발 후 45초가 지나면 경기 종료
-  const READY_MS = 7000;        // 버튼을 누르고 출발까지 7초 (휴대폰이 알아챌 시간 + 3·2·1)
+  const READY_MS = 5000;        // 출발 버튼을 누르고 출발까지 5초 (휴대폰이 알아챌 시간 + 3·2·1)
   const GRACE_MS = 350;         // 색이 바뀐 직후 0.35초 동안은 직전 색도 정답 인정
   const RACE_COLORS = [
     { name: "파랑", hex: "#3b8cff", emoji: "🔵" },
@@ -660,7 +661,10 @@
         return;
       }
       const now = serverNow();
-      if (finishAt !== null) {
+      if (!race.startAt) {
+        msg.textContent = "준비";
+        st.textContent = "🏃 출발선에 섰어요! 진행자가 출발 신호를 주면 시작해요\n프로젝터에 나오는 색깔 버튼을 누르세요 · 틀리면 뒤로 가요!";
+      } else if (finishAt !== null) {
         msg.textContent = "🏁";
         st.textContent = `골인! ${((finishAt - race.startAt) / 1000).toFixed(2)}초 · 결과는 프로젝터에서 확인해요`;
       } else if (now < race.startAt) {
@@ -977,6 +981,12 @@
     setInterval(() => {
       if (raceState.phase !== "ready") return;
       const now = serverNow(), b = $("raceBanner"), cue = $("colorCue");
+      if (!raceState.startAt) {
+        b.hidden = false; cue.hidden = true; b.className = "small";
+        b.textContent = "🏃 모두 출발선에 섰어요! 휴대폰에 색깔 버튼이 보이면 ‘출발!’을 눌러 주세요";
+        runners.forEach((pid) => stage.setRunner(pid, 0, 0));
+        return;
+      }
       const el = now - raceState.startAt;
       if (el < 0) {
         const n = Math.ceil(-el / 1000);
@@ -1063,9 +1073,11 @@
         runners = ids;
         revealToken++; judgeRevealed = false; allScores = {}; syncOverlay();
         btn.disabled = true;
-        try { await fb.ref("face/race").set({ state: { phase: "ready", round: Date.now(), startAt: Math.round(serverNow() + READY_MS) } }); }
+        try { await fb.ref("face/race").set({ state: { phase: "ready", round: Date.now(), startAt: 0 } }); }
         catch (e) { showErr("달리기를 시작하지 못했어요."); }
         btn.disabled = false;
+      } else if (raceState.phase === "ready" && !raceState.startAt) {
+        try { await fb.ref("face/race").set({ state: { phase: "off", round: 0, startAt: 0 } }); } catch (e) {}
       } else if (raceState.phase === "ready") {
         if (!raceStopConfirm) { btn.textContent = "한 번 더 누르면 경기 종료"; raceStopConfirm = setTimeout(() => { raceStopConfirm = 0; onChange(); }, 3000); return; }
         clearTimeout(raceStopConfirm); raceStopConfirm = 0;
@@ -1073,6 +1085,14 @@
       } else {
         try { await fb.ref("face/race").set({ state: { phase: "off", round: 0, startAt: 0 } }); } catch (e) {}
       }
+    });
+
+    $("raceGoBtn").addEventListener("click", async () => {
+      if (raceState.phase !== "ready" || raceState.startAt) return;
+      $("raceGoBtn").disabled = true;
+      try { await fb.ref("face/race/state").update({ startAt: Math.round(serverNow() + READY_MS) }); }
+      catch (e) { showErr("출발하지 못했어요. 다시 눌러 주세요."); }
+      $("raceGoBtn").disabled = false;
     });
 
     onChange = () => {
@@ -1083,8 +1103,9 @@
       $("pCount").textContent = `참가 ${Object.keys(nicks).length}/${MAX_PLAYERS}명 · 등장 ${ids.length}명`;
       $("judgeBtn").disabled = judging || !ids.length || raceState.phase === "ready";
       $("judgeBtn").textContent = judging ? "🔍 심사 중…" : "✨ 외모 평가하기";
-      if (!raceStopConfirm) $("raceBtn").textContent = raceState.phase === "off" ? "🏃 100m 달리기" : raceState.phase === "ready" ? "■ 경기 끝내기" : "↩ 무대로 돌아가기";
+      if (!raceStopConfirm) $("raceBtn").textContent = raceState.phase === "off" ? "🏃 100m 달리기" : raceState.phase === "ready" ? (raceState.startAt ? "■ 경기 끝내기" : "✖ 달리기 취소") : "↩ 무대로 돌아가기";
       $("raceBtn").disabled = judging || (raceState.phase === "off" && !ids.length);
+      $("raceGoBtn").hidden = !(raceState.phase === "ready" && !raceState.startAt);
       if (judge && judge.at !== lastJudgeAt && Array.isArray(judge.top)) { lastJudgeAt = judge.at; revealResults(); }
       if (!judge && lastJudgeAt) {
         lastJudgeAt = null; revealToken++; judgeRevealed = false; allScores = {};
