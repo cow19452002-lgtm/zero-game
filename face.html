@@ -129,10 +129,10 @@
   #hostErr { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); max-width: 600px; }
 
   /* 달리기 */
-  #raceBanner { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); font-size: clamp(70px, 13vw, 240px);
+  #raceBanner, #tugBanner { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); font-size: clamp(70px, 13vw, 240px);
     color: #fff; pointer-events: none; white-space: nowrap;
     text-shadow: 0 6px 0 #ff7eb0, 0 -3px 0 #ff7eb0, 4px 0 0 #ff7eb0, -4px 0 0 #ff7eb0, 0 14px 30px rgba(0,0,0,.25); }
-  #raceBanner.small { font-size: clamp(22px, 2.4vw, 42px); top: 22%; text-shadow: none; color: var(--ink);
+  #raceBanner.small, #tugBanner.small { font-size: clamp(22px, 2.4vw, 42px); top: 22%; text-shadow: none; color: var(--ink);
     background: #fff; padding: 10px 26px; border-radius: 999px; box-shadow: 0 6px 18px rgba(74,59,92,.2); white-space: normal; text-align: center; max-width: 80vw; }
   #colorCue { position: absolute; left: 50%; top: calc(28px + clamp(30px, 2.6vw, 50px)); transform: translateX(-50%); display: flex; align-items: center; gap: 18px;
     background: var(--cue, #ccc); color: #fff; border-radius: 999px; padding: 10px 36px 10px 18px;
@@ -153,6 +153,55 @@
   #track2d .runner img { width: 100%; height: 100%; }
   #track2d .line { position: absolute; top: 0; bottom: 0; width: 8px; background: #fff; }
   #track2d .finish { background: repeating-linear-gradient(0deg, #fff 0 12px, #4a3b5c 12px 24px); width: 16px; }
+
+
+  /* 줄다리기 */
+  #breathCue { position: absolute; left: 50%; top: calc(28px + clamp(30px, 2.6vw, 50px)); transform: translateX(-50%); display: flex; align-items: center; gap: 16px;
+    background: #ff7eb0; color: #fff; border-radius: 999px; padding: 10px 34px; border: 6px solid #fff; white-space: nowrap; z-index: 5;
+    box-shadow: 0 7px 0 rgba(0,0,0,.15), 0 12px 30px rgba(0,0,0,.2); transition: background .2s; }
+  #breathText { font-size: clamp(34px, 4.6vw, 84px); line-height: 1.05; text-shadow: 0 4px 0 rgba(0,0,0,.15); }
+  #breathTimer { font-size: clamp(16px, 1.5vw, 26px); align-self: flex-end; padding-bottom: 6px; }
+  #breathCue.warn { background: #ffa94d; animation: warnBlink .35s ease-in-out infinite; }
+  #breathCue.rest { background: #5fb2ff; }
+  @keyframes warnBlink { 50% { filter: brightness(1.2); } }
+  #tugGauges { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+  .gauge { position: absolute; left: -999px; transform: translate(-50%, -50%); width: clamp(128px, 11vw, 210px); background: #fff; border-radius: 16px;
+    padding: 5px 10px 8px; border: 4px solid var(--tc); box-shadow: 0 6px 16px rgba(74,59,92,.22); }
+  .gauge .gTop { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 5px; }
+  .gauge .gName { font-size: clamp(17px, 1.6vw, 28px); }
+  .gauge .gName::before { content: ""; display: inline-block; width: .6em; height: .6em; border-radius: 50%; background: var(--tc); margin-right: 6px; }
+  .gauge .gVal { font-size: clamp(13px, 1.1vw, 18px); color: var(--soft); white-space: nowrap; }
+  .gauge.weak { animation: shake .3s; } .gauge.weak .gVal { color: #e05590; }
+  .gauge .gBar { height: clamp(12px, 1.2vw, 20px); background: #f1eaff; border-radius: 999px; overflow: hidden; }
+  .gauge .gBar div { height: 100%; width: 0; background: var(--tc); border-radius: 999px; transition: width .15s linear; }
+  .gauge.win { animation: gwin .6s ease-in-out infinite; }
+  @keyframes gwin { 50% { transform: translate(-50%, -62%) scale(1.06); } }
+  #tugSetup { left: 50%; right: auto; top: 50%; transform: translate(-50%, -50%); width: min(620px, 92vw); max-height: 86vh; z-index: 9; }
+  #tugSetup .label { font-size: 19px; margin: 4px 0 8px; }
+  #tugNBtns { display: flex; gap: 8px; margin-bottom: 14px; }
+  #tugNBtns button { font-size: 20px; padding: 8px 20px; }
+  #tugSlots .slot { display: grid; grid-template-columns: 24px 160px 1fr; gap: 10px; align-items: center; margin-bottom: 10px; }
+  #tugSlots .dot { width: 22px; height: 22px; border-radius: 50%; }
+  #tugSlots select { font: inherit; font-size: 18px; padding: 6px 10px; border-radius: 12px; border: 3px solid #ecdfff; background: #fbf8ff; color: var(--ink); }
+  .faces { display: flex; flex-wrap: wrap; align-items: center; }
+  .faces img { width: 34px; height: 34px; border-radius: 50%; margin-right: -6px; border: 2px solid #fff; background: #ffe0bd; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+  #tugSetupMsg { color: #e05590; min-height: 1.3em; margin: 4px 0 10px; }
+  .btnRow { display: flex; gap: 10px; justify-content: flex-end; }
+  #tugRes { left: 18px; right: auto; top: 76px; width: min(480px, 35vw); }
+  #tugRes li { grid-template-columns: 44px auto 1fr; }
+  #tugRes li .faces img { width: 36px; height: 36px; border-width: 2px; }
+  #tugRes .tname { color: #fff; background: var(--tc); padding: 2px 16px; border-radius: 999px; font-size: clamp(17px, 1.6vw, 28px); white-space: nowrap; }
+  #tug2d { position: absolute; left: 2%; right: 2%; top: 19%; bottom: 3%; background: #c8f0d6; border-radius: 30px; border: 6px solid #fff;
+    box-shadow: 0 10px 30px rgba(74,59,92,.2); overflow: hidden; }
+  #tug2d > div { position: absolute; }
+  #tug2d .fline { height: 8px; border-radius: 4px; transform-origin: 0 50%; }
+  #tug2d .rope { height: 7px; background: #c9955c; border-radius: 4px; transform-origin: 0 50%; transition: left .12s linear, top .12s linear; }
+  #tug2d .knot { font-size: 42px; transform: translate(-50%, -50%); transition: left .12s linear, top .12s linear; z-index: 2; }
+  #tug2d .mem { width: var(--m, 54px); height: var(--m, 54px); border-radius: 50%; background: #ffe0bd; border: 4px solid var(--tc); overflow: hidden;
+    transform: translate(-50%, -50%); transition: left .12s linear, top .12s linear; box-shadow: 0 3px 8px rgba(0,0,0,.2); z-index: 1; }
+  #tug2d .mem img { width: 100%; height: 100%; display: block; }
+  #tug2d .mem.win { animation: hop .5s ease-in-out infinite; }
+  @keyframes hop { 50% { transform: translate(-50%, -85%); } }
 
   /* 2D 대체 무대 */
   #flat { position: absolute; left: 0; right: 0; bottom: 14%; top: 26%; display: flex; flex-wrap: wrap; align-content: flex-end;
@@ -192,6 +241,26 @@
   #myScore b { font-size: 46px; color: #ff5c93; font-weight: normal; display: block; }
   .ok { color: #2fa77a; font-size: 15px; min-height: 1.2em; margin-top: 6px; }
 
+
+  #teamGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .teamBtn { padding: 7px 0 5px; font-size: 17px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
+  .teamBtn small { font-size: 11px; color: var(--soft); }
+  .teamBtn.on small { color: #fff; }
+  #teamNow { font-size: 15px; color: var(--soft); margin-left: 4px; }
+  #tugBox { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; padding: 14px; gap: 10px;
+    background: linear-gradient(180deg, #fff1f7 0%, #eef7ff 100%); -webkit-user-select: none; user-select: none; }
+  #tugTitle { font-size: 26px; text-align: center; color: #ff5c93; }
+  #tugTeam { align-self: center; font-size: 24px; color: #fff; background: var(--tc, #b9b0c7); padding: 6px 24px; border-radius: 999px; box-shadow: 0 4px 0 rgba(0,0,0,.15); }
+  #tugVs { text-align: center; font-size: 15px; color: var(--soft); }
+  #tugStatus { font-size: 19px; text-align: center; min-height: 2.6em; line-height: 1.3; white-space: pre-line; }
+  #pullBtn { flex: 1; min-height: 0; border-radius: 40px; font-size: 54px; color: #fff; background: var(--tc, #b9b0c7); touch-action: none;
+    text-shadow: 0 3px 0 rgba(0,0,0,.2); box-shadow: 0 10px 0 rgba(0,0,0,.2); transition: transform .05s, box-shadow .05s, background .2s; }
+  #pullBtn:active { transform: translateY(6px); box-shadow: 0 4px 0 rgba(0,0,0,.2); }
+  #pullBtn.warn { animation: warnBlink .3s ease-in-out infinite; }
+  #pullBtn.rest { background: #9fb6d6; }
+  #pullBtn.off { filter: grayscale(.7); opacity: .6; }
+  #tugMine { text-align: center; font-size: 19px; line-height: 1.5; min-height: 1.5em; }
+  #tugMine b { font-size: 44px; color: #ff5c93; font-weight: normal; display: block; }
   #raceBox { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; padding: 14px; gap: 10px;
     background: linear-gradient(180deg, #fff1f7 0%, #eef7ff 100%); -webkit-user-select: none; user-select: none; }
   #raceTitle { font-size: 26px; text-align: center; color: #ff5c93; }
@@ -232,6 +301,7 @@
   <div id="cueFrame"></div>
   <div id="flat" hidden></div>
   <div id="track2d" hidden></div>
+  <div id="tug2d" hidden></div>
   <div id="overlay"></div>
   <div id="bubbles"></div>
   <div id="titleBox">
@@ -248,6 +318,9 @@
   </div>
   <div id="judgeBanner" hidden></div>
   <div id="raceBanner" hidden></div>
+  <div id="tugGauges" hidden></div>
+  <div id="tugBanner" hidden></div>
+  <div id="breathCue" hidden><div id="breathText"></div><div id="breathTimer"></div></div>
   <div id="colorCue" hidden><div class="dot" id="cueDot"></div><div class="name" id="cueName"></div><div class="timer" id="cueTimer"></div></div>
   <div id="results" class="panel" hidden>
     <h2>👑 외모 평가 결과</h2>
@@ -260,9 +333,25 @@
     <ol id="raceList"></ol>
     <div class="small" id="raceMore"></div>
   </div>
+  <div id="tugSetup" class="panel" hidden>
+    <h2>🪢 조별 줄다리기 준비</h2>
+    <div class="label">몇 조가 겨룰까요?</div>
+    <div id="tugNBtns"><button class="tbtn" data-n="2">2조</button><button class="tbtn" data-n="3">3조</button><button class="tbtn" data-n="4">4조</button><button class="tbtn" data-n="5">5조</button></div>
+    <div class="label">겨룰 조를 골라 주세요</div>
+    <div id="tugSlots"></div>
+    <div id="tugSetupMsg"></div>
+    <div class="btnRow"><button id="tugSetupClose" class="candy c-gray">닫기</button><button id="tugEnterBtn" class="candy c-mint">🪢 선수 입장</button></div>
+  </div>
+  <div id="tugRes" class="panel" hidden>
+    <h2>🪢 줄다리기 결과</h2>
+    <ol id="tugList"></ol>
+    <div class="small" id="tugResNote"></div>
+  </div>
   <div id="ctrl">
     <button id="raceGoBtn" class="candy c-pink" hidden>🏁 출발!</button>
+    <button id="tugGoBtn" class="candy c-pink" hidden>🏁 출발!</button>
     <button id="raceBtn" class="candy c-mint">🏃 100m 달리기</button>
+    <button id="tugBtn" class="candy c-peach">🪢 줄다리기</button>
     <button id="judgeBtn" class="candy c-pink">✨ 외모 평가하기</button>
     <button id="closeResBtn" class="candy c-sky" hidden>결과 닫기</button>
     <button id="resetBtn" class="candy c-gray">초기화</button>
@@ -285,6 +374,11 @@
   </div>
 
   <div id="drawBox" hidden>
+    <div class="card" style="margin-bottom:14px">
+      <div class="label">🪢 내 조를 골라 주세요 <span id="teamNow"></span></div>
+      <div id="teamGrid"></div>
+      <div class="ok" id="teamOk"></div>
+    </div>
     <div class="card">
       <div class="label"><span id="meNick"></span> 님, 내 얼굴을 그려 주세요! ✏️</div>
       <div id="padWrap">
@@ -334,6 +428,16 @@
       <div id="raceMine"></div>
       <button id="raceCloseBtn" class="candy c-gray" hidden style="align-self:center">닫기</button>
     </div>
+    <div id="tugBox" hidden>
+      <div class="phoneEvent">🎉 '26년 R&amp;D센터 운영회의</div>
+      <div id="tugTitle">🪢 조별 줄다리기</div>
+      <div id="tugTeam"></div>
+      <div id="tugVs"></div>
+      <div id="tugStatus"></div>
+      <button id="pullBtn" class="off">준비</button>
+      <div id="tugMine"></div>
+      <button id="tugCloseBtn" class="candy c-gray" hidden style="align-self:center">닫기</button>
+    </div>
     <div id="feedback"></div>
   </div>
 </div>
@@ -372,6 +476,37 @@
       t += dur; k++; prev = idx;
       idx = (idx + 1 + hashStr(round + ":c" + k) % 3) % 4;   // 같은 색이 연속으로 나오지 않음
     }
+  }
+
+  // ---------- 줄다리기 공통 ----------
+  const TUG_LIMIT = 60000;       // 출발 후 60초 안에 승부가 안 나면 매듭과 가까운 순서로 순위
+  const TUG_READY_MS = 5000;     // 출발 버튼을 누르고 5초 뒤 시작
+  const TUG_TEAM_MAX = 6;        // 한 조 최대 인원
+  const TUG_PENALTY = 2;         // 숨고르기 중 한 번 누르면 영차 2번만큼 힘이 빠짐
+  const TUG_GRACE = 300;         // 숨고르기 시작 직후 0.3초는 봐줌
+  const TUG_SPEED = 0.022;       // 힘 차이 → 매듭 이동 속도 (평균 2회/초 차이면 약 25초에 깃발선)
+  const TUG_R = 6, TUG_D0 = 1.9, TUG_GAP = 1.15;   // 깃발선 거리, 매듭~첫 사람, 사람 간격
+  const TUG_COLORS = [{ hex: "#ff5e7e" }, { hex: "#3b8cff" }, { hex: "#2fc27a" }, { hex: "#ffb31a" }, { hex: "#a46bff" }];
+  function tugDirs(n) {   // 각 조가 당기는 방향 (화면 기준: x 오른쪽, y 위쪽)
+    const base = n === 2 ? 180 : n === 4 ? 135 : 90;
+    return Array.from({ length: n }, (_, i) => { const a = (base + 360 * i / n) * Math.PI / 180; return { x: Math.cos(a), y: Math.sin(a) }; });
+  }
+  function tugExt(n) {   // 팔이 위·아래·좌·우로 얼마나 뻗는지 (화면 배치용)
+    const d = tugDirs(n), e = { l: 0, r: 0, u: 0, d: 0 };
+    d.forEach((v) => { e.r = Math.max(e.r, v.x); e.l = Math.max(e.l, -v.x); e.u = Math.max(e.u, v.y); e.d = Math.max(e.d, -v.y); });
+    return e;
+  }
+  function breathAt(round, el) {   // 당기기 4~7.5초 ↔ 숨고르기 1.8~3.3초 반복 (모두 같은 순서)
+    let t = 0;
+    for (let k = 0; k < 200; k++) {
+      const pull = (k ? 3500 : 4500) + hashStr(round + ":p" + k) % 3000;
+      if (el < t + pull) return { rest: false, since: el - t, left: t + pull - el };
+      t += pull;
+      const rest = 1800 + hashStr(round + ":r" + k) % 1500;
+      if (el < t + rest) return { rest: true, since: el - t, left: t + rest - el };
+      t += rest;
+    }
+    return { rest: false, since: 0, left: 1e9 };
   }
 
   function fatal(msg) {
@@ -413,12 +548,13 @@
     document.body.classList.add("phone");
     $("player").hidden = false;
     $("nickInput").value = lsGet("faceNick") || "";
-    let joinedNick = null, myResult = null, sentFace = false;
+    let joinedNick = null, myResult = null, sentFace = false, myTeam = 0, teamAll = {};
     const setConn = (ok) => { $("pConn").textContent = ok ? "🟢 연결됨" : "🟠 연결이 불안정해요… 다시 시도 중"; };
 
     async function poll() {
       try {
-        const [n, sc, up] = await Promise.all([rest("face/nicks/" + myId), rest("face/scores/" + myId), rest("face/players/" + myId + "/updatedAt")]);
+        const [n, sc, up, tm] = await Promise.all([rest("face/nicks/" + myId), rest("face/scores/" + myId), rest("face/players/" + myId + "/updatedAt"), rest("face/teams")]);
+        teamAll = tm || {}; myTeam = Number(teamAll[myId]) || 0; renderTeams();
         joinedNick = typeof n === "string" ? n : null;
         myResult = sc && typeof sc === "object" ? sc : null;
         sentFace = !!up;
@@ -451,7 +587,7 @@
       $("joinBtn").disabled = false;
     });
     $("leaveBtn").addEventListener("click", async () => {
-      try { await rest("face", "PATCH", { ["nicks/" + myId]: null, ["players/" + myId]: null, ["msgs/" + myId]: null }); } catch (e) {}
+      try { await rest("face", "PATCH", { ["nicks/" + myId]: null, ["players/" + myId]: null, ["msgs/" + myId]: null, ["teams/" + myId]: null }); } catch (e) {}
       joinedNick = null; sentFace = false; onChange();
     });
 
@@ -679,6 +815,144 @@
       }
     }
     setInterval(renderRace, 200);
+
+    // ---- 조 고르기 ----
+    const teamGrid = $("teamGrid");
+    function renderTeams() {
+      const cnt = {};
+      for (const pid in teamAll) { const v = Number(teamAll[pid]); if (v >= 1 && v <= 20) cnt[v] = (cnt[v] || 0) + 1; }
+      teamGrid.querySelectorAll("button").forEach((b) => {
+        const t = Number(b.dataset.t), c = cnt[t] || 0;
+        b.classList.toggle("on", t === myTeam);
+        b.querySelector("small").textContent = `${c}/${TUG_TEAM_MAX}`;
+        b.disabled = c >= TUG_TEAM_MAX && t !== myTeam;
+      });
+      $("teamNow").textContent = myTeam ? `· 지금 ${myTeam}조` : "";
+    }
+    for (let t = 1; t <= 20; t++) {
+      const b = document.createElement("button");
+      b.className = "tbtn teamBtn"; b.dataset.t = t;
+      b.append(t + "조", document.createElement("small"));
+      b.addEventListener("click", async () => {
+        if (!joinedNick || t === myTeam) return;
+        const ok = $("teamOk"); ok.textContent = "";
+        try {
+          const all = (await rest("face/teams")) || {};
+          const c = Object.entries(all).filter(([pid, v]) => pid !== myId && Number(v) === t).length;
+          if (c >= TUG_TEAM_MAX) { teamAll = all; renderTeams(); ok.textContent = `${t}조는 ${TUG_TEAM_MAX}명이 다 찼어요 😢`; return; }
+          await rest("face/teams/" + myId, "PUT", t);
+          all[myId] = t; teamAll = all; myTeam = t; renderTeams();
+          ok.textContent = `${t}조로 등록했어요! 🙌`;
+        } catch (e) { ok.textContent = "등록하지 못했어요. 다시 눌러 주세요"; }
+      });
+      teamGrid.appendChild(b);
+    }
+    renderTeams();
+
+    // ---- 조별 줄다리기 ----
+    let tug = { phase: "off", round: 0, startAt: 0, teams: [] }, myTugRound = 0, tg = 0, tb = 0;
+    let tugSent = "", tugSending = false, tugRes = null, tugClosed = false;
+    const tugTapTimes = [];
+    async function pollTug() {
+      try {
+        const st = (await rest("face/tug/state")) || {};
+        const teams = Array.isArray(st.teams) ? st.teams.map(Number) : [];
+        tug = { phase: st.phase || "off", round: Number(st.round) || 0, startAt: Number(st.startAt) || 0, teams };
+        if (tug.phase === "ready" && tug.round !== myTugRound) {
+          myTugRound = tug.round; tg = 0; tb = 0; tugSent = ""; tugRes = null; tugClosed = false; tugTapTimes.length = 0;
+          syncClock();
+        }
+        if (tug.phase === "done" && tug.round === myTugRound && !tugRes) tugRes = await rest(`face/tug/res/${myTugRound}`);
+      } catch (e) {}
+      renderTug();
+    }
+    pollTug();
+    setInterval(pollTug, 1200);
+    const tugIdx = () => tug.teams.indexOf(myTeam);
+    const tugIn = () => tug.round === myTugRound && myTeam > 0 && tugIdx() >= 0 && sentFace;
+    function tugLive() {
+      const now = serverNow();
+      return tug.phase === "ready" && tug.startAt > 0 && tugIn() && now >= tug.startAt && now <= tug.startAt + TUG_LIMIT;
+    }
+    $("pullBtn").addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      if (!tugLive()) return;
+      const now = Date.now();
+      while (tugTapTimes.length && now - tugTapTimes[0] > 1000) tugTapTimes.shift();
+      if (tugTapTimes.length >= 10) return;        // 1초에 10번까지만 인정
+      tugTapTimes.push(now);
+      const br = breathAt(tug.round, serverNow() - tug.startAt);
+      if (br.rest) {
+        if (br.since < TUG_GRACE) return;
+        tb++;
+        feedback("힘 빠짐 😵");
+        const b = $("pullBtn"); b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake");
+        try { navigator.vibrate && navigator.vibrate(150); } catch (er) {}
+      } else { tg++; feedback("영차! 💪"); }
+      renderTug();
+    });
+    $("pullBtn").addEventListener("contextmenu", (e) => e.preventDefault());
+    $("tugCloseBtn").addEventListener("click", () => { tugClosed = true; renderTug(); });
+    setInterval(async () => {
+      if (tugSending || tug.phase !== "ready" || !tugIn()) return;
+      const key = tg + ":" + tb;
+      if (key === tugSent) return;
+      tugSending = true;
+      try { await rest(`face/tug/taps/${myTugRound}/${myId}`, "PUT", { g: tg, b: tb }); tugSent = key; } catch (e) {}
+      tugSending = false;
+    }, 300);
+
+    function renderTug() {
+      const box = $("tugBox");
+      const show = joinedNick && myTugRound && tug.round === myTugRound && (tug.phase === "ready" || (tug.phase === "done" && !tugClosed));
+      box.hidden = !show;
+      if (!show) return;
+      const i = tugIdx();
+      box.style.setProperty("--tc", i >= 0 ? TUG_COLORS[i].hex : "#b9b0c7");
+      const btn = $("pullBtn"), st = $("tugStatus"), mine = $("tugMine");
+      $("tugTeam").textContent = i >= 0 ? `우리 ${myTeam}조` : myTeam ? `${myTeam}조는 이번 판 응원조` : "조를 아직 안 골랐어요";
+      $("tugVs").textContent = tug.teams.map((t) => t + "조").join("  vs  ");
+      $("tugCloseBtn").hidden = tug.phase !== "done";
+      mine.textContent = "";
+      const winTeam = tugRes && Array.isArray(tugRes.order) ? tugRes.order[0] : null;
+      if (!tugIn()) {
+        btn.hidden = true;
+        st.textContent = !sentFace ? "얼굴을 먼저 보내야 참가할 수 있어요 🥲" : "이번 경기는 응원 담당! 📣\n프로젝터를 보며 힘껏 응원해 주세요";
+        if (tug.phase === "done" && winTeam) mine.textContent = `🏆 ${winTeam}조 승리!`;
+        return;
+      }
+      btn.hidden = false;
+      if (tug.phase === "done") {
+        btn.className = "off"; btn.textContent = "🏁";
+        st.textContent = "경기 끝! 수고했어요 👏";
+        if (winTeam) {
+          const rk = tugRes.order.indexOf(myTeam) + 1;
+          const a = document.createElement("div"); a.textContent = `우리 ${myTeam}조는`;
+          const b = document.createElement("b"); b.textContent = rk === 1 ? "🎉 1위! 🎉" : `${rk}위`;
+          mine.append(a, b);
+        } else mine.textContent = "결과를 불러오는 중…";
+        return;
+      }
+      const now = serverNow();
+      if (!tug.startAt) {
+        btn.className = "off"; btn.textContent = "준비";
+        st.textContent = "🪢 줄을 잡았어요! 진행자가 출발 신호를 주면 시작해요\n💪 당겨! 일 때 연타 · 🤫 숨고르기 때 누르면 힘이 빠져요";
+        return;
+      }
+      if (now < tug.startAt) {
+        const k = Math.ceil((tug.startAt - now) / 1000);
+        btn.className = "off"; btn.textContent = k <= 3 ? String(k) : "준비";
+        st.textContent = "곧 시작해요! 프로젝터를 보세요 👀";
+        return;
+      }
+      if (now > tug.startAt + TUG_LIMIT) { btn.className = "off"; btn.textContent = "⏰"; st.textContent = "시간 종료! 결과를 기다려요"; return; }
+      const br = breathAt(tug.round, now - tug.startAt);
+      if (br.rest) { btn.className = "rest"; btn.textContent = "🤫 숨고르기"; st.textContent = "지금 누르면 힘이 빠져요!\n잠깐 쉬어요"; }
+      else if (br.left < 1200) { btn.className = "warn"; btn.textContent = "💪 당겨!"; st.textContent = "⚠ 곧 숨고르기!\n멈출 준비!"; }
+      else { btn.className = ""; btn.textContent = "💪 당겨!"; st.textContent = "연타! 연타!\n영차 영차!"; }
+      mine.textContent = `영차 ${tg}번` + (tb ? ` · 힘 빠짐 ${tb}번 😵` : "");
+    }
+    setInterval(renderTug, 120);
 
     onChange = () => {
       $("joinBox").hidden = !!joinedNick;
@@ -942,6 +1216,11 @@
     });
 
     // ---------- 100m 색깔 달리기 ----------
+    let tugState = { phase: "off", round: 0, startAt: 0, teams: [] };
+    function updateChrome() {
+      const busy = raceState.phase !== "off" || tugState.phase !== "off";
+      $("hostTitle").hidden = $("hostSub").hidden = busy; $("qrBox").hidden = busy;
+    }
     let raceState = { phase: "off", round: 0, startAt: 0 };
     let raceTaps = {}, raceRef = null, runners = [], raceFinalizing = false, raceShownRound = 0, lastCue = -1;
     fb.ref("face/race/state").on("value", (snap) => {
@@ -956,7 +1235,7 @@
           raceRef.on("value", (x) => { raceTaps = x.val() || {}; });
         }
       }
-      $("hostTitle").hidden = $("hostSub").hidden = raceState.phase !== "off"; $("qrBox").hidden = raceState.phase !== "off";
+      updateChrome();
       if (raceState.phase !== "ready") { $("colorCue").hidden = true; $("cueFrame").style.setProperty("--cue", "transparent"); lastCue = -1; }
       if (raceState.phase === "off") {
         runners = []; stage.setRace(null);
@@ -1095,16 +1374,266 @@
       $("raceGoBtn").disabled = false;
     });
 
+
+    // ---------- 조별 줄다리기 ----------
+    let teamOf = {};
+    let tugTaps = {}, tugRef = null, tugRoster = [], tugPower = {}, tugLast = {}, tugKnot = { x: 0, y: 0 };
+    let tugFinalizing = false, tugShownRound = 0, tugSetupN = 2, tugSetupSel = [], tugSetupKey = "", tugStopConfirm = 0;
+    const teamMembers = (t) => visibleIds().filter((pid) => Number(teamOf[pid]) === t);
+    fb.ref("face/teams").on("value", (s) => { teamOf = s.val() || {}; onChange(); });
+
+    function setupKey() { return JSON.stringify(visibleIds().map((pid) => [pid, teamOf[pid] || 0])); }
+    function renderTugSetup() {
+      tugSetupKey = setupKey();
+      document.querySelectorAll("#tugNBtns button").forEach((b) => b.classList.toggle("on", Number(b.dataset.n) === tugSetupN));
+      const counts = {};
+      visibleIds().forEach((pid) => { const t = Number(teamOf[pid]); if (t >= 1 && t <= 20) counts[t] = (counts[t] || 0) + 1; });
+      const byCount = Object.keys(counts).map(Number).sort((a, b) => counts[b] - counts[a] || a - b);
+      tugSetupSel = tugSetupSel.slice(0, tugSetupN).map((t) => (counts[t] ? t : 0));
+      for (let i = 0; i < tugSetupN; i++) if (!tugSetupSel[i]) tugSetupSel[i] = byCount.find((t) => !tugSetupSel.includes(t)) || 0;
+      const box = $("tugSlots"); box.textContent = "";
+      tugSetupSel.forEach((t, i) => {
+        const row = document.createElement("div"); row.className = "slot";
+        const dot = document.createElement("div"); dot.className = "dot"; dot.style.background = TUG_COLORS[i].hex;
+        const sel = document.createElement("select");
+        const o0 = document.createElement("option"); o0.value = 0; o0.textContent = "조 선택"; sel.appendChild(o0);
+        for (let k = 1; k <= 20; k++) {
+          const o = document.createElement("option"); o.value = k; o.textContent = `${k}조 · ${counts[k] || 0}명`; o.disabled = !counts[k];
+          sel.appendChild(o);
+        }
+        sel.value = String(t);
+        sel.addEventListener("change", () => { tugSetupSel[i] = Number(sel.value); renderTugSetup(); });
+        const faces = document.createElement("div"); faces.className = "faces";
+        if (t) teamMembers(t).forEach((pid) => { const im = document.createElement("img"); im.src = players[pid].img; im.title = players[pid].nick || ""; faces.appendChild(im); });
+        row.append(dot, sel, faces); box.appendChild(row);
+      });
+      const chosen = tugSetupSel.filter(Boolean);
+      const dup = new Set(chosen).size !== chosen.length;
+      $("tugSetupMsg").textContent = !byCount.length ? "아직 조를 고른 참가자가 없어요. 휴대폰 맨 위에서 조를 골라 달라고 안내해 주세요 📱"
+        : chosen.length < tugSetupN ? `${tugSetupN}개 조를 모두 골라 주세요 (조를 고른 사람이 있는 조만 선택할 수 있어요)`
+        : dup ? "같은 조를 두 번 고를 수 없어요" : "";
+      $("tugEnterBtn").disabled = chosen.length < tugSetupN || dup;
+    }
+    document.querySelectorAll("#tugNBtns button").forEach((b) => b.addEventListener("click", () => { tugSetupN = Number(b.dataset.n); renderTugSetup(); }));
+    $("tugSetupClose").addEventListener("click", () => { $("tugSetup").hidden = true; });
+    $("tugEnterBtn").addEventListener("click", async () => {
+      const teams = tugSetupSel.slice(0, tugSetupN);
+      revealToken++; judgeRevealed = false; allScores = {}; syncOverlay();
+      $("tugEnterBtn").disabled = true;
+      try { await fb.ref("face/tug").set({ state: { phase: "ready", round: Date.now(), startAt: 0, teams } }); $("tugSetup").hidden = true; }
+      catch (e) { showErr("줄다리기를 준비하지 못했어요."); }
+      $("tugEnterBtn").disabled = false;
+    });
+
+    function buildGauges() {
+      const box = $("tugGauges"); box.textContent = "";
+      tugRoster.forEach((r) => {
+        const g = document.createElement("div"); g.className = "gauge"; g.style.setProperty("--tc", r.color);
+        const top = document.createElement("div"); top.className = "gTop";
+        const nm = document.createElement("span"); nm.className = "gName"; nm.textContent = `${r.team}조`;
+        const v = document.createElement("span"); v.className = "gVal"; v.textContent = `${r.ids.length}명`;
+        const bar = document.createElement("div"); bar.className = "gBar"; bar.appendChild(document.createElement("div"));
+        top.append(nm, v); g.append(top, bar); box.appendChild(g);
+      });
+    }
+    function setGauge(i, f, mean) {
+      const g = $("tugGauges").children[i]; if (!g) return;
+      g.querySelector(".gBar div").style.width = Math.min(100, Math.max(0, f) / 10 * 100) + "%";
+      const weak = mean < -0.3;
+      if (weak !== g.classList.contains("weak")) g.classList.toggle("weak", weak);
+      g.querySelector(".gVal").textContent = weak ? "😵 힘 빠짐!" : `💪 ${f.toFixed(1)}`;
+    }
+    function placeGauges() {
+      const box = $("tugGauges");
+      if (!box.hidden) [...box.children].forEach((g, i) => {
+        const p = stage.tugLabelPos(i);
+        if (!p) { g.style.left = "-999px"; return; }
+        const w = g.offsetWidth, h = g.offsetHeight;
+        // 카드의 안쪽 가장자리가 조의 맨 끝 사람 바로 바깥에 오도록 바깥쪽으로 밀어 둠
+        const dx = p.dx || 0, dy = p.dy || 0;
+        const push = Math.min(Math.abs(dx) > 1e-3 ? (w / 2) / Math.abs(dx) : 1e9, Math.abs(dy) > 1e-3 ? (h / 2) / Math.abs(dy) : 1e9) + 6;
+        const x = p.x + dx * push, y = p.y + dy * push;
+        g.style.left = Math.max(w / 2 + 10, Math.min(innerWidth - w / 2 - 10, x)) + "px";
+        g.style.top = Math.max(h / 2 + 64, Math.min(innerHeight - h / 2 - 84, y)) + "px";
+      });
+      requestAnimationFrame(placeGauges);
+    }
+    requestAnimationFrame(placeGauges);
+
+    function refreshRoster() {
+      const r = tugState.teams.map((t, i) => ({ team: t, color: TUG_COLORS[i].hex, ids: teamMembers(t) }));
+      if (JSON.stringify(r) === JSON.stringify(tugRoster)) return;
+      tugRoster = r;
+      stage.setTug({ teams: tugRoster });
+      buildGauges();
+    }
+
+    fb.ref("face/tug/state").on("value", (snap) => {
+      const d = snap.val() || {};
+      const prev = tugState.round;
+      const teams = Array.isArray(d.teams) ? d.teams.map(Number).filter((t) => t >= 1 && t <= 20).slice(0, 5) : [];
+      tugState = { phase: ["ready", "done"].includes(d.phase) && teams.length >= 2 ? d.phase : "off", round: Number(d.round) || 0, startAt: Number(d.startAt) || 0, teams };
+      if (tugState.round !== prev) {
+        if (tugRef) tugRef.off();
+        tugTaps = {}; tugRef = null; tugRoster = []; tugPower = {}; tugLast = {}; tugKnot = { x: 0, y: 0 };
+        if (tugState.round) { tugRef = fb.ref("face/tug/taps/" + tugState.round); tugRef.on("value", (x) => { tugTaps = x.val() || {}; }); }
+      }
+      if (tugState.phase === "off") {
+        tugRoster = []; stage.setTug(null);
+        $("tugRes").hidden = true; $("tugBanner").hidden = true; $("breathCue").hidden = true; $("tugGauges").hidden = true;
+        $("tugGauges").textContent = ""; $("cueFrame").style.setProperty("--cue", "transparent");
+        if (!judgeRevealed) stage.setWinner(null);
+      } else {
+        refreshRoster();
+        $("results").hidden = true; $("closeResBtn").hidden = true; $("tugSetup").hidden = true; $("tugGauges").hidden = false;
+        stage.setWinner(null);
+        if (tugState.phase === "ready") { $("tugRes").hidden = true; stage.setTugState(tugKnot, [], -1); }
+      }
+      if (tugState.phase === "done" && tugShownRound !== tugState.round) { tugShownRound = tugState.round; showTugResults(); }
+      updateChrome();
+      onChange();
+    });
+
+    setInterval(() => {
+      if (tugState.phase !== "ready") return;
+      if (!tugRoster.some((r) => r.ids.length)) refreshRoster();
+      const now = serverNow(), ban = $("tugBanner"), cue = $("breathCue");
+      const zero = () => tugRoster.forEach((r, i) => setGauge(i, 0, 0));
+      if (!tugState.startAt) {
+        ban.hidden = false; ban.className = "small"; cue.hidden = true;
+        ban.textContent = "🪢 모두 줄을 잡았어요! 휴대폰에 ‘당겨!’ 버튼이 보이면 ‘출발!’을 눌러 주세요";
+        zero(); return;
+      }
+      const el = now - tugState.startAt;
+      if (el < 0) {
+        const k = Math.ceil(-el / 1000);
+        ban.hidden = false; cue.hidden = true; ban.className = k > 3 ? "small" : "";
+        ban.textContent = k > 3 ? "💪 ‘당겨!’일 때 연타!  🤫 ‘숨고르기’ 때 누르면 힘이 빠져요!" : String(k);
+        zero(); return;
+      }
+      ban.hidden = el > 1000; ban.className = ""; ban.textContent = "영차!";
+      if (el > TUG_LIMIT) {
+        cue.hidden = true; $("cueFrame").style.setProperty("--cue", "transparent");
+        ban.hidden = false; ban.className = "small"; ban.textContent = "⏰ 시간 종료! 집계 중…";
+        if (!tugFinalizing) finalizeTug(-1);
+        return;
+      }
+      const br = breathAt(tugState.round, el);
+      const warn = !br.rest && br.left < 1200;
+      cue.hidden = false; cue.className = br.rest ? "rest" : warn ? "warn" : "";
+      $("breathText").textContent = br.rest ? "🤫 숨고르기! 누르면 힘 빠져요" : warn ? "⚠ 곧 숨고르기!" : "💪 당겨!!";
+      $("breathTimer").textContent = `⏱ ${Math.ceil((TUG_LIMIT - el) / 1000)}초`;
+      $("cueFrame").style.setProperty("--cue", br.rest ? "#7cc4ff" : "transparent");
+      // 각 조의 힘 = 조원들의 (영차 - 2×힘빠짐) 속도의 평균 → 인원이 달라도 공평
+      const dt = 0.1, a = 1 - Math.exp(-dt / 0.8);
+      const forces = tugRoster.map((r, i) => {
+        let sum = 0;
+        r.ids.forEach((pid) => {
+          const d = tugTaps[pid] || {}, g = Number(d.g) || 0, b = Number(d.b) || 0;
+          const last = tugLast[pid];
+          const inst = last ? ((g - last.g) - TUG_PENALTY * (b - last.b)) / dt : 0;
+          tugLast[pid] = { g, b };
+          const p0 = tugPower[pid] || 0;
+          const p = Math.max(-8, Math.min(12, p0 + (inst - p0) * a));
+          tugPower[pid] = p; sum += p;
+        });
+        const mean = r.ids.length ? sum / r.ids.length : 0;
+        setGauge(i, mean, mean);
+        return mean;   // 숨고르기 때 누르면 음수 → 매듭이 반대로(상대 쪽으로) 끌려감
+      });
+      const dirs = tugDirs(tugRoster.length);
+      let vx = 0, vy = 0;
+      forces.forEach((f, i) => { vx += f * dirs[i].x; vy += f * dirs[i].y; });
+      tugKnot.x += vx * TUG_SPEED * dt; tugKnot.y += vy * TUG_SPEED * dt;
+      const len = Math.hypot(tugKnot.x, tugKnot.y);
+      if (len > 1.2) { tugKnot.x *= 1.2 / len; tugKnot.y *= 1.2 / len; }
+      stage.setTugState(tugKnot, forces.map((f) => Math.max(-0.5, Math.min(1, f / 10))), -1);
+      const w = dirs.findIndex((d) => d.x * tugKnot.x + d.y * tugKnot.y >= 1);
+      if (w >= 0 && !tugFinalizing) finalizeTug(w);
+    }, 100);
+
+    async function finalizeTug(w) {
+      tugFinalizing = true;
+      const dirs = tugDirs(tugRoster.length);
+      const proj = dirs.map((d) => d.x * tugKnot.x + d.y * tugKnot.y);
+      const order = tugRoster.map((r, i) => i).sort((a, b) => (a === w ? -1 : b === w ? 1 : proj[b] - proj[a]));
+      const res = { order: order.map((i) => tugRoster[i].team), flag: w >= 0, knot: { x: Math.round(tugKnot.x * 1000) / 1000, y: Math.round(tugKnot.y * 1000) / 1000 } };
+      const st = { phase: "done", round: tugState.round, startAt: tugState.startAt, teams: tugState.teams };
+      try { await fb.ref("face/tug").update({ ["res/" + tugState.round]: res, state: st }); }
+      catch (e) { console.error(e); showErr("줄다리기 결과를 저장하지 못했어요."); }
+      tugFinalizing = false;
+    }
+
+    async function showTugResults() {
+      $("breathCue").hidden = true; $("cueFrame").style.setProperty("--cue", "transparent");
+      let res = null;
+      try { res = (await fb.ref("face/tug/res/" + tugState.round).get()).val(); } catch (e) {}
+      if (!res || !Array.isArray(res.order) || tugState.phase !== "done") return;
+      if (!tugRoster.some((r) => r.ids.length)) refreshRoster();
+      if (res.knot) tugKnot = { x: Number(res.knot.x) || 0, y: Number(res.knot.y) || 0 };
+      const wIdx = tugState.teams.indexOf(res.order[0]);
+      stage.setTugState(tugKnot, [], wIdx);
+      [...$("tugGauges").children].forEach((g, i) => g.classList.toggle("win", i === wIdx));
+      const b = $("tugBanner"); b.hidden = false; b.className = ""; b.textContent = `🎉 ${res.order[0]}조 승리!`;
+      await sleep(2000);
+      if (tugState.phase !== "done") return;
+      b.hidden = true;
+      const ol = $("tugList"); ol.textContent = ""; $("tugRes").hidden = false;
+      $("tugResNote").textContent = res.flag ? "🚩 매듭을 깃발선까지 끌어온 조가 승리!" : "⏰ 시간 종료 · 매듭을 자기 쪽으로 많이 끌어온 순서";
+      for (let k = res.order.length - 1; k >= 0; k--) {
+        if (tugState.phase !== "done") return;
+        const t = res.order[k], i = tugState.teams.indexOf(t), r = tugRoster[i] || { ids: [], color: "#b9b0c7" };
+        const li = document.createElement("li"); if (k === 0) li.classList.add("first");
+        const rk = document.createElement("div"); rk.className = "rk"; rk.textContent = k === 0 ? "🥇" : k === 1 ? "🥈" : k === 2 ? "🥉" : (k + 1);
+        const nm = document.createElement("div"); nm.className = "tname"; nm.style.setProperty("--tc", r.color); nm.textContent = `${t}조`;
+        const fc = document.createElement("div"); fc.className = "faces";
+        r.ids.forEach((pid) => { if (players[pid] && players[pid].img) { const im = document.createElement("img"); im.src = players[pid].img; fc.appendChild(im); } });
+        li.append(rk, nm, fc); ol.prepend(li);
+        await sleep(k === 1 ? 1100 : 700);
+      }
+    }
+
+    $("tugBtn").addEventListener("click", async () => {
+      const btn = $("tugBtn");
+      if (tugState.phase === "off") {
+        $("tugSetup").hidden = !$("tugSetup").hidden;
+        if (!$("tugSetup").hidden) { $("results").hidden = true; $("closeResBtn").hidden = true; renderTugSetup(); }
+        return;
+      }
+      if (tugState.phase === "ready" && tugState.startAt) {
+        if (!tugStopConfirm) { btn.textContent = "한 번 더 누르면 경기 종료"; tugStopConfirm = setTimeout(() => { tugStopConfirm = 0; onChange(); }, 3000); return; }
+        clearTimeout(tugStopConfirm); tugStopConfirm = 0;
+        if (!tugFinalizing) finalizeTug(-1);
+        return;
+      }
+      try { await fb.ref("face/tug").set({ state: { phase: "off", round: 0, startAt: 0 } }); } catch (e) {}
+    });
+    $("tugGoBtn").addEventListener("click", async () => {
+      if (tugState.phase !== "ready" || tugState.startAt) return;
+      refreshRoster();
+      $("tugGoBtn").disabled = true;
+      try { await fb.ref("face/tug/state").update({ startAt: Math.round(serverNow() + TUG_READY_MS) }); }
+      catch (e) { showErr("출발하지 못했어요. 다시 눌러 주세요."); }
+      $("tugGoBtn").disabled = false;
+    });
+
     onChange = () => {
       const ids = visibleIds();
       stage.sync(ids, players);
       syncOverlay();
-      $("empty").hidden = ids.length > 0 || raceState.phase !== "off";
+      $("empty").hidden = ids.length > 0 || raceState.phase !== "off" || tugState.phase !== "off";
       $("pCount").textContent = `참가 ${Object.keys(nicks).length}/${MAX_PLAYERS}명 · 등장 ${ids.length}명`;
-      $("judgeBtn").disabled = judging || !ids.length || raceState.phase === "ready";
+      $("judgeBtn").disabled = judging || !ids.length || raceState.phase === "ready" || tugState.phase === "ready";
       $("judgeBtn").textContent = judging ? "🔍 심사 중…" : "✨ 외모 평가하기";
       if (!raceStopConfirm) $("raceBtn").textContent = raceState.phase === "off" ? "🏃 100m 달리기" : raceState.phase === "ready" ? (raceState.startAt ? "■ 경기 끝내기" : "✖ 달리기 취소") : "↩ 무대로 돌아가기";
-      $("raceBtn").disabled = judging || (raceState.phase === "off" && !ids.length);
+      $("raceBtn").disabled = judging || tugState.phase !== "off" || (raceState.phase === "off" && !ids.length);
+      if (!tugStopConfirm) $("tugBtn").textContent = tugState.phase === "off" ? "🪢 줄다리기" : tugState.phase === "ready" ? (tugState.startAt ? "■ 경기 끝내기" : "✖ 줄다리기 취소") : "↩ 무대로 돌아가기";
+      $("tugBtn").disabled = judging || raceState.phase !== "off" || (tugState.phase === "off" && !ids.length);
+      $("tugGoBtn").hidden = !(tugState.phase === "ready" && !tugState.startAt);
+      if (tugState.phase === "ready" && !tugState.startAt) refreshRoster();
+      else if (tugState.phase !== "off" && !tugRoster.some((r) => r.ids.length)) refreshRoster();
+      if (!$("tugSetup").hidden && (tugState.phase !== "off" || raceState.phase !== "off")) $("tugSetup").hidden = true;
+      if (!$("tugSetup").hidden && setupKey() !== tugSetupKey) renderTugSetup();
       $("raceGoBtn").hidden = !(raceState.phase === "ready" && !raceState.startAt);
       if (judge && judge.at !== lastJudgeAt && Array.isArray(judge.top)) { lastJudgeAt = judge.at; revealResults(); }
       if (!judge && lastJudgeAt) {
@@ -1332,7 +1861,8 @@
         }
       });
       lastIds = ids.slice();
-      if (!raceIds) layout(ids);
+      if (tugCfg) tugVisibility();
+      else if (!raceIds) layout(ids);
       else for (const pid in chars) { const on = raceIds.includes(pid); chars[pid].group.visible = chars[pid].shadow.visible = on; }
     }
 
@@ -1349,7 +1879,9 @@
       }
       for (const k in runState) delete runState[k];
       if (!ids) {
-        raceIds = null; platform.visible = true;
+        raceIds = null;
+        if (tugCfg) return;
+        platform.visible = true;
         for (const pid in chars) { const c = chars[pid]; c.group.visible = c.shadow.visible = true; c.group.scale.setScalar(1); c.shadow.scale.setScalar(1); }
         layout(lastIds.filter((pid) => chars[pid]));
         return;
@@ -1399,6 +1931,91 @@
     }
     function setRunner(pid, dist, rank) { const r = runState[pid]; if (!r) return; r.target = dist; r.rank = rank; }
 
+
+    // ---------- 줄다리기 경기장 ----------
+    let tugCfg = null, tugGroup = null, tugKey = "", tugArms = [], tugKnotMesh = null, tugMaxM = 1, tugF = [], tugWinIdx = -1;
+    const tugTarget = { x: 0, y: 0 }, tugShow = { x: 0, y: 0 };
+    const TUG_SC = 0.72;
+    function tugVisibility() {
+      const on = new Set(); tugCfg.teams.forEach((t) => t.ids.forEach((p) => on.add(p)));
+      for (const pid in chars) { const v = on.has(pid); chars[pid].group.visible = chars[pid].shadow.visible = v; }
+    }
+    function setTug(cfg) {
+      const key = cfg ? JSON.stringify(cfg.teams.map((t) => [t.team, t.ids])) : "";
+      if (key === tugKey) return;
+      tugKey = key;
+      if (tugGroup) {
+        scene.remove(tugGroup);
+        tugGroup.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } });
+        tugGroup = null;
+      }
+      tugArms = []; tugKnotMesh = null;
+      if (!cfg) {
+        tugCfg = null;
+        for (const pid in chars) {
+          const c = chars[pid];
+          c.group.rotation.set(0, 0, 0); c.group.rotation.order = "XYZ";
+          c.legs.forEach((l) => { l.rotation.x = 0; }); c.arms.forEach((a) => { a.rotation.x = 0; });
+        }
+        if (!raceIds) {
+          platform.visible = true;
+          for (const pid in chars) { const c = chars[pid]; c.group.visible = c.shadow.visible = true; c.group.scale.setScalar(1); c.shadow.scale.setScalar(1); }
+          layout(lastIds.filter((pid) => chars[pid]));
+        }
+        return;
+      }
+      tugCfg = cfg; platform.visible = false;
+      const n = cfg.teams.length, dirs = tugDirs(n);
+      tugMaxM = Math.max(1, ...cfg.teams.map((t) => t.ids.length));
+      const tail = TUG_D0 + (tugMaxM - 1) * TUG_GAP;
+      const groundR = TUG_R + tail + 2.2;
+      tugGroup = new THREE.Group();
+      const ground = new THREE.Mesh(new THREE.CircleGeometry(groundR, 72), toon(0xbfeccf));
+      ground.rotation.x = -Math.PI / 2; ground.position.y = 0.002; tugGroup.add(ground);
+      const edge = new THREE.Mesh(new THREE.CircleGeometry(groundR + 0.6, 72), toon(0xffffff));
+      edge.rotation.x = -Math.PI / 2; tugGroup.add(edge);
+      const mark = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.75, 40), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      mark.rotation.x = -Math.PI / 2; mark.position.y = 0.006; tugGroup.add(mark);
+      cfg.teams.forEach((t, i) => {
+        const d = dirs[i], col = new THREE.Color(t.color), ang = Math.atan2(d.y, d.x);
+        const arm = new THREE.Group(); arm.rotation.y = ang;
+        const zone = new THREE.Mesh(new THREE.PlaneGeometry(tail + 2.2, 3.2), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.2 }));
+        zone.rotation.x = -Math.PI / 2; zone.position.set(TUG_R + (tail + 2.2) / 2, 0.004, 0); arm.add(zone);
+        const line = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 3.6), new THREE.MeshBasicMaterial({ color: col }));
+        line.rotation.x = -Math.PI / 2; line.position.set(TUG_R, 0.008, 0); arm.add(line);
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.2, 10), toon(0xffffff));
+        pole.position.set(TUG_R, 1.6, 2.0); arm.add(pole);
+        const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.75), new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide }));
+        flag.position.set(TUG_R + 0.6, 2.8, 2.0); arm.add(flag);
+        tugGroup.add(arm);
+        const ropeLen = TUG_D0 + (Math.max(1, t.ids.length) - 1) * TUG_GAP + 1.3;
+        const rope = new THREE.Group(); rope.rotation.y = ang;
+        const cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, ropeLen, 8), toon(0xd8b07a));
+        cyl.rotation.z = -Math.PI / 2; cyl.position.x = ropeLen / 2; rope.add(cyl);
+        tugGroup.add(rope);
+        tugArms.push({ rope, dir: d, team: t });
+      });
+      tugKnotMesh = new THREE.Group();
+      const kb = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 14), toon(0xff5c93)); tugKnotMesh.add(kb);
+      [-1, 1].forEach((sg) => {
+        const w = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.6, 14), toon(0xff8fb8));
+        w.rotation.z = sg * Math.PI / 2; w.position.x = sg * 0.42; tugKnotMesh.add(w);
+      });
+      tugGroup.add(tugKnotMesh);
+      scene.add(tugGroup);
+      tugVisibility();
+    }
+    function setTugState(k, forces, win) { tugTarget.x = k.x; tugTarget.y = k.y; tugF = forces || []; tugWinIdx = win; }
+    function tugLabelPos(i) {
+      const a = tugCfg && tugArms[i]; if (!a) return null;
+      const r = TUG_D0 + (Math.max(1, a.team.ids.length) - 1) * TUG_GAP + 0.9;
+      const bx = tugShow.x * TUG_R, bz = -tugShow.y * TUG_R;
+      const p = project(new THREE.Vector3(bx + a.dir.x * r, 0, bz - a.dir.y * r));
+      const q = project(new THREE.Vector3(bx + a.dir.x * (r - 1), 0, bz - a.dir.y * (r - 1)));
+      const dl = Math.hypot(p.x - q.x, p.y - q.y) || 1;
+      return { x: p.x, y: p.y, dx: (p.x - q.x) / dl, dy: (p.y - q.y) / dl };
+    }
+
     function resize() {
       const w = box.clientWidth, h = box.clientHeight;
       renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
@@ -1424,12 +2041,50 @@
       const dist = Math.max(11, fitW, fitH);
       const elev = raceIds ? (raceIds.length > 10 ? 0.8 : 0.55) : v.rows > 1 ? 0.42 : 0.3;
       const cz = raceIds ? -raceGeo.D / 2 + raceGeo.laneGap / 2 : -v.depth / 2;
-      camera.position.lerp(tmp.set(0, 1.6 + dist * Math.sin(elev), cz + dist * Math.cos(elev)), 0.05);
-      camera.lookAt(0, 1.5, cz);
+      if (tugCfg) {
+        const span = TUG_R * 1.05 + TUG_D0 + (tugMaxM - 1) * TUG_GAP + 2.0;
+        const ex = tugExt(tugCfg.teams.length), two = tugCfg.teams.length === 2, e = two ? 0.7 : 1.0;
+        const vf = THREE.MathUtils.degToRad(camera.fov / 2), hf = Math.atan(Math.tan(vf) * camera.aspect);
+        const halfW = Math.max(ex.l, ex.r) * span + 1.5, halfD = two ? 3 : (ex.u + ex.d) / 2 * span + 1.5;
+        const zc = two ? 0 : -(ex.u - ex.d) / 2 * span;      // 위(먼 쪽)로 더 뻗으면 그쪽으로 중심 이동
+        const dd = Math.max(10, halfW / Math.tan(hf), (halfD * Math.sin(e) + 2.5) / Math.tan(vf));
+        camera.position.lerp(tmp.set(0, dd * Math.sin(e), zc + dd * Math.cos(e)), 0.05);
+        camera.lookAt(0, 0.6, zc);
+        tugShow.x += (tugTarget.x - tugShow.x) * Math.min(1, dt * 5);
+        tugShow.y += (tugTarget.y - tugShow.y) * Math.min(1, dt * 5);
+        const kx = tugShow.x * TUG_R, kz = -tugShow.y * TUG_R;
+        tugArms.forEach((a) => a.rope.position.set(kx, 0.8, kz));
+        if (tugKnotMesh) { tugKnotMesh.position.set(kx, 0.85, kz); tugKnotMesh.rotation.y = t * 1.5; }
+      } else {
+        camera.position.lerp(tmp.set(0, 1.6 + dist * Math.sin(elev), cz + dist * Math.cos(elev)), 0.05);
+        camera.lookAt(0, 1.5, cz);
+      }
 
       for (const pid in chars) {
         const c = chars[pid], g = c.group.position;
         if (c.accG.userData.spin) c.accG.userData.spin.rotation.y = t * 2;
+        if (tugCfg) {
+          if (!c.group.visible) continue;
+          let ti = -1, k = -1;
+          for (let j = 0; j < tugCfg.teams.length; j++) { const x = tugCfg.teams[j].ids.indexOf(pid); if (x >= 0) { ti = j; k = x; break; } }
+          if (ti < 0 || !tugArms[ti]) continue;
+          const d = tugArms[ti].dir, f = tugF[ti] || 0, win = tugWinIdx === ti, lose = tugWinIdx >= 0 && !win;
+          const r = TUG_D0 + k * TUG_GAP;
+          g.x = tugShow.x * TUG_R + d.x * r; g.z = -(tugShow.y * TUG_R + d.y * r);
+          c.group.scale.setScalar(TUG_SC);
+          c.group.rotation.order = "YXZ";
+          c.group.rotation.y = Math.atan2(-d.x, d.y);       // 매듭 쪽을 바라봄
+          const lean = win ? 0 : lose ? -0.08 : 0.2 + f * 0.4 + (f > 0.05 ? Math.sin(t * 12 + k) * 0.06 : 0);
+          c.group.rotation.x = -lean; c.group.rotation.z = 0;   // 힘줄수록 뒤로 젖힘
+          g.y = win ? Math.abs(Math.sin(t * 6 + k)) * 0.7 : 0;
+          c.arms[0].rotation.x = c.arms[1].rotation.x = win ? 0 : -1.35;
+          c.arms[0].rotation.z = win ? -2.5 - Math.sin(t * 8) * 0.3 : -0.15;
+          c.arms[1].rotation.z = win ? 2.5 + Math.sin(t * 8) * 0.3 : 0.15;
+          c.legs[0].rotation.x = win ? 0 : 0.35; c.legs[1].rotation.x = win ? 0 : -0.25;
+          c.head.rotation.set(0, 0, 0); c.body.scale.set(1.05, 1.1, 0.95);
+          c.shadow.position.set(g.x, 0.01, g.z); c.shadow.scale.setScalar(TUG_SC);
+          continue;
+        }
         if (raceIds) {
           if (!c.group.visible) continue;
           const r = runState[pid]; if (!r) continue;
@@ -1519,7 +2174,7 @@
     }
     requestAnimationFrame(frame);
 
-    return { sync, screenPos, setRace, setRunner, spotlight: (pid) => { spotPid = pid; }, setWinner: (pid) => { winner = pid || null; } };
+    return { sync, screenPos, setRace, setRunner, setTug, setTugState, tugLabelPos, spotlight: (pid) => { spotPid = pid; }, setWinner: (pid) => { winner = pid || null; } };
   }
 
   // =====================================================================
@@ -1558,7 +2213,7 @@
     function setRace(ids) {
       if (ids && raceIds && ids.length === raceIds.length && ids.every((x, i) => x === raceIds[i])) return;
       track.textContent = ""; for (const k in lanes) delete lanes[k];
-      if (!ids) { raceIds = null; track.hidden = true; flat.hidden = false; return; }
+      if (!ids) { raceIds = null; track.hidden = true; flat.hidden = !!tug2; return; }
       raceIds = ids.slice(); track.hidden = false; flat.hidden = true;
       const st = document.createElement("div"); st.className = "line"; st.style.left = "6%";
       const fi = document.createElement("div"); fi.className = "line finish"; fi.style.left = "94%";
@@ -1577,7 +2232,78 @@
       last[pid] = dist;
       l.style.left = (6 + dist * 0.88) + "%";
     }
+
+    const tugEl = $("tug2d"); let tug2 = null;
+    function setTug(cfg) {
+      const key = cfg ? JSON.stringify(cfg.teams.map((t) => [t.team, t.ids])) : "";
+      if ((tug2 ? tug2.key : "") === key) return;
+      tugEl.textContent = ""; tug2 = null;
+      if (!cfg) { tugEl.hidden = true; if (!raceIds) flat.hidden = false; return; }
+      tugEl.hidden = false; flat.hidden = true; track.hidden = true;
+      const dirs = tugDirs(cfg.teams.length);
+      const arms = cfg.teams.map((t, i) => {
+        const line = document.createElement("div"); line.className = "fline"; line.style.background = t.color;
+        const rope = document.createElement("div"); rope.className = "rope";
+        tugEl.append(line, rope);
+        const mems = t.ids.map((pid) => {
+          const m = document.createElement("div"); m.className = "mem"; m.style.setProperty("--tc", t.color);
+          const im = document.createElement("img"); if (els[pid]) im.src = els[pid].img.src;
+          m.appendChild(im); tugEl.appendChild(m); return m;
+        });
+        return { line, rope, mems, dir: dirs[i], team: t };
+      });
+      const knot = document.createElement("div"); knot.className = "knot"; knot.textContent = "🎀"; tugEl.appendChild(knot);
+      tug2 = { key, arms, knot, k: { x: 0, y: 0 }, win: -1, maxM: Math.max(1, ...cfg.teams.map((t) => t.ids.length)) };
+      layoutTug2();
+    }
+    function tugGeom() {
+      const W = tugEl.clientWidth, H = tugEl.clientHeight, n = tug2.arms.length, e = tugExt(n);
+      const span = TUG_R * 1.05 + TUG_D0 + (tug2.maxM - 1) * TUG_GAP + 1.2;
+      let sx = (W - 40) / ((e.l + e.r) * span);
+      let sy = n === 2 ? sx : (H - 40) / ((e.u + e.d) * span);
+      sx = Math.min(sx, sy * 1.7); if (n === 2) sy = sx;
+      return { cx: 20 + e.l * span * sx + (W - 40 - (e.l + e.r) * span * sx) / 2, cy: n === 2 ? H / 2 : 20 + e.u * span * sy, sx, sy };
+    }
+    function layoutTug2() {
+      if (!tug2) return;
+      const { cx, cy, sx, sy } = tugGeom();
+      const kx = cx + tug2.k.x * TUG_R * sx, ky = cy - tug2.k.y * TUG_R * sy;
+      const msz = Math.max(30, Math.min(64, TUG_GAP * Math.min(sx, sy * 1.3) * 0.9));
+      tugEl.style.setProperty("--m", msz + "px");
+      tug2.knot.style.left = kx + "px"; tug2.knot.style.top = ky + "px";
+      tug2.arms.forEach((a, i) => {
+        const dx = a.dir.x * sx, dy = -a.dir.y * sy;        // 화면 좌표 (아래가 +), 1칸당 px
+        const dl = Math.hypot(dx, dy), ux = dx / dl, uy = dy / dl;
+        const fx = cx + dx * TUG_R, fy = cy + dy * TUG_R, px = -uy, py = ux, L = 3.4 * Math.min(sx, sy);
+        a.line.style.left = (fx - px * L / 2) + "px"; a.line.style.top = (fy - py * L / 2) + "px";
+        a.line.style.width = L + "px"; a.line.style.transform = `rotate(${Math.atan2(py, px)}rad)`;
+        const rl = (TUG_D0 + (Math.max(1, a.mems.length) - 1) * TUG_GAP + 1.2) * dl;
+        a.rope.style.left = kx + "px"; a.rope.style.top = (ky - 3) + "px"; a.rope.style.width = rl + "px";
+        a.rope.style.transform = `rotate(${Math.atan2(uy, ux)}rad)`;
+        a.mems.forEach((m, k) => {
+          const r = TUG_D0 + k * TUG_GAP;
+          m.style.left = (kx + dx * r) + "px"; m.style.top = (ky + dy * r) + "px";
+          m.classList.toggle("win", tug2.win === i);
+        });
+      });
+    }
+    window.addEventListener("resize", layoutTug2);
+    function setTugState(k, forces, win) { if (!tug2) return; tug2.k = { x: k.x, y: k.y }; tug2.win = win; layoutTug2(); }
+    function tugLabelPos(i) {
+      if (!tug2 || !tug2.arms[i]) return null;
+      const a = tug2.arms[i], { cx, cy, sx, sy } = tugGeom(), rc = tugEl.getBoundingClientRect();
+      const r = TUG_D0 + (Math.max(1, a.mems.length) - 1) * TUG_GAP + 0.9;
+      const ddx = a.dir.x * sx, ddy = -a.dir.y * sy, dl = Math.hypot(ddx, ddy);
+      return { x: rc.left + cx + (tug2.k.x * TUG_R + a.dir.x * r) * sx, y: rc.top + cy - (tug2.k.y * TUG_R + a.dir.y * r) * sy, dx: ddx / dl, dy: ddy / dl };
+    }
     function screenPos(pid) {
+      if (tug2) {
+        let m = null;
+        tug2.arms.forEach((a) => { const k = a.team.ids.indexOf(pid); if (k >= 0) m = a.mems[k]; });
+        if (!m) return null;
+        const r = m.getBoundingClientRect();
+        return { head: { x: r.left + r.width / 2, y: r.top - 4 }, foot: { x: r.left + r.width / 2, y: r.bottom + 2 } };
+      }
       if (raceIds) {
         const l = lanes[pid]; if (!l) return null;
         const r = l.getBoundingClientRect();
@@ -1588,7 +2314,7 @@
       return { head: { x: r.left + r.width / 2, y: r.top - 8 }, foot: { x: r.left + r.width / 2, y: r.bottom + 4 } };
     }
     return {
-      sync, screenPos, setRace, setRunner,
+      sync, screenPos, setRace, setRunner, setTug, setTugState, tugLabelPos,
       spotlight: (pid) => { for (const k in els) els[k].root.style.filter = pid && k !== pid ? "brightness(.5) saturate(.5)" : ""; },
       setWinner: (pid) => { for (const k in els) { els[k].root.classList.toggle("win", k === pid); els[k].acc.textContent = k === pid ? "👑" : ACCS[accOf(k)]; } },
     };
